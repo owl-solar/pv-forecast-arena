@@ -1,0 +1,36 @@
+# --- Private (not for public repo) ---
+CLAUDE.md
+.claude/
+docs/PLAN.md
+
+# --- Data (downloaded locally, too large / license-bound) ---
+data/raw/*
+data/interim/*
+data/processed/*
+!data/**/.gitkeep
+
+# --- Experiment runs (raw logs, model files) ---
+runs/*
+!runs/.gitkeep
+*.pkl
+*.joblib
+*.ckpt
+
+# --- Secrets ---
+.env
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

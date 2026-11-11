@@ -1,0 +1,27 @@
+# Shared settings. Experiment configs use `extends: ../base.yaml` and override keys.
+site:
+  pvdaq_system_id: null      # TODO: same system as PV Loss Auditor
+  latitude: null
+  longitude: null
+  ac_capacity_kw: null
+  timezone: UTC
+
+data:
+  start: "2022-01-01"
+  end: "2024-12-31"
+  resolution: 1h
+  raw_dir: data/raw
+  processed_dir: data/processed
+
+weather:
+  source: open-meteo-historical-forecast
+  models: [best_match]
+
+evaluation:
+  holdout_start: "2024-01-01"
+  cv: walk_forward
+  daytime_only: true
+  reference: smart_persistence
+  metrics: [nrmse, nmae, mbe, skill]
+
+seed: 42

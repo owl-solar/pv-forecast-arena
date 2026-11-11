@@ -1,0 +1,33 @@
+[project]
+name = "pv-forecast-arena"
+version = "0.1.0"
+description = "Benchmark of solar PV generation forecasting approaches"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "numpy",
+    "pyarrow",
+    "requests",
+    "pyyaml",
+    "pvlib",
+    "pvanalytics",
+    "scikit-learn",
+    "lightgbm",
+    "xgboost",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "jupyter"]
+dl = ["darts"]
+app = ["streamlit", "plotly"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
