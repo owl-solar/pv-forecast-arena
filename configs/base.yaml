@@ -1,10 +1,25 @@
 # Shared settings. Experiment configs use `extends: ../base.yaml` and override keys.
 site:
-  pvdaq_system_id: null      # TODO: same system as PV Loss Auditor
-  latitude: null
-  longitude: null
-  ac_capacity_kw: null
+  pvdaq_system_id: 2107      # Farm Solar Array, Arbuckle, CA
+  latitude: 38.996306
+  longitude: -122.134111
+  ac_capacity_kw: null       # not in metadata; to be confirmed from clipping
+  dc_capacity_kw: 893
+  tilt_deg: 25               # fixed ground mount
+  azimuth_deg: 180
   timezone: UTC
+
+pvdaq:
+  prefix: pvdaq/2023-solar-data-prize/2107_OEDI/data
+  files:
+    meter:
+      - 2107_meter_15m_data.csv
+      - 2107_meter_15m_data_2024.csv
+      - 2107_meter_15m_data_2025.csv
+    irradiance:
+      - 2107_irradiance_data.csv
+      - 2107_irradiance_data_2024.csv
+      - 2107_irradiance_15m_data_2025.csv
 
 data:
   start: "2022-01-01"
