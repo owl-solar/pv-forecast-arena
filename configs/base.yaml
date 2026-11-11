@@ -3,11 +3,12 @@ site:
   pvdaq_system_id: 2107      # Farm Solar Array, Arbuckle, CA
   latitude: 38.996306
   longitude: -122.134111
-  ac_capacity_kw: null       # not in metadata; to be confirmed from clipping
+  ac_capacity_kw: 708        # not in metadata; observed 2024-2025 maximum of the meter (kW), an estimate
   dc_capacity_kw: 893
   tilt_deg: 25               # fixed ground mount
   azimuth_deg: 180
   timezone: UTC
+  local_timezone: America/Los_Angeles   # PVDAQ source clock; display only
 
 pvdaq:
   prefix: pvdaq/2023-solar-data-prize/2107_OEDI/data
@@ -20,20 +21,39 @@ pvdaq:
       - 2107_irradiance_data.csv
       - 2107_irradiance_data_2024.csv
       - 2107_irradiance_15m_data_2025.csv
+  # Files used for modelling (2024-02 onwards). Older files use the same local clock and stay cached only.
+  use:
+    meter:      {file: 2107_meter_15m_data_2025.csv, clock: local, label: start}   # kW, interval-start stamps
+    irradiance: {file: 2107_irradiance_15m_data_2025.csv, clock: utc, label: end}  # W/m2 POA, 5-15 min stamps
 
 data:
-  start: "2022-01-01"
-  end: "2024-12-31"
+  start: "2024-02-01"        # start of Open-Meteo Previous Runs coverage for GFS
+  end: "2025-12-31"
   resolution: 1h
   raw_dir: data/raw
   processed_dir: data/processed
 
 weather:
-  source: open-meteo-historical-forecast
-  models: [best_match]
+  # Main: archived forecasts from Open-Meteo Previous Runs (value issued exactly N days before the valid hour).
+  # lead_days=2 is leakage-free for a 10:00 local D-1 issue time; lead 1 is kept only for the leakage comparison.
+  previous_runs_model: gfs_seamless
+  lead_days: 2
+  extra_lead_days: [1]
+  variables: [shortwave_radiation, direct_radiation, temperature_2m, cloud_cover, wind_speed_10m]
+  # Oracle (observed weather, explicitly marked, never used in the main run).
+  oracle_model: best_match
+  forecast_issue_hour_local: 10
+
+cleaning:
+  daytime_elevation_deg: 5
+  stuck_window_hours: 4
+  clipping_quantile: 0.995
 
 evaluation:
-  holdout_start: "2024-01-01"
+  holdout_start: "2025-01-01"
+  train_start: "2024-02-01"
+  refit_every_months: 1
+  min_train_months: 4        # first walk-forward test month = train_start + min_train_months
   cv: walk_forward
   daytime_only: true
   reference: smart_persistence

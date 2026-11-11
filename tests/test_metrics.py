@@ -1,4 +1,11 @@
-from pv_forecast_arena.evaluation.metrics import coverage, mbe, nmae, nrmse, pinball_loss, skill_score
+from pv_forecast_arena.evaluation.metrics import (
+    coverage,
+    mbe,
+    nmae,
+    nrmse,
+    pinball_loss,
+    skill_score,
+)
 
 
 def test_perfect_forecast():

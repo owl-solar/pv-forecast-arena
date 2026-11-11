@@ -69,3 +69,46 @@ def download_all(cfg: dict) -> list[Path]:
         for group in cfg["pvdaq"]["files"].values()
         for filename in group
     ]
+
+
+def to_utc(series: pd.Series, clock: str, local_timezone: str) -> pd.Series:
+    """Convert a naive-indexed series to a UTC index.
+
+    `clock="local"`: wall-clock time with DST (the fall-back hour occurs once in these files, so
+    ambiguous times are taken as the first occurrence; nonexistent spring-forward times are dropped).
+    `clock="utc"`: already UTC.
+    """
+    series = series[~series.index.duplicated()].sort_index()
+    if clock == "utc":
+        series.index = series.index.tz_localize("UTC")
+        return series
+    if clock != "local":
+        raise ValueError(f"Unknown clock {clock!r}")
+    index = series.index.tz_localize(local_timezone, ambiguous=True, nonexistent="NaT")
+    series = series[~index.isna()]
+    series.index = index[~index.isna()].tz_convert("UTC")
+    return series[~series.index.duplicated()].sort_index()
+
+
+def load_hourly(cfg: dict, kind: str) -> pd.Series:
+    """Cached series `kind` ("meter" or "irradiance") as hourly means, UTC, hour-ending labels.
+
+    The label at T covers [T-1h, T], the same convention as Open-Meteo's `shortwave_radiation`.
+    Meter stamps mark the start of a 15-min interval, so stamps in [T-1h, T) belong to T;
+    irradiance stamps are taken as the end of their averaging interval, so (T-1h, T] belongs to T.
+    Hours with fewer than three quarters of the expected samples are set to NaN.
+    """
+    spec = cfg["pvdaq"]["use"][kind]
+    path = raw_path(cfg["data"]["raw_dir"], cfg["site"]["pvdaq_system_id"], spec["file"])
+    raw = pd.read_parquet(path).iloc[:, 0].astype(float)
+    series = to_utc(raw, spec["clock"], cfg["site"]["local_timezone"])
+    closed = "left" if spec["label"] == "start" else "right"
+    # Coverage of an hour = total time represented by its samples (spacing to the previous sample,
+    # capped at 15 min), so mixed 5/10/15-min stamping is handled and gaps are not mistaken for data.
+    spacing = (
+        series.index.to_series().diff().clip(upper=pd.Timedelta("15min")).dt.total_seconds() / 3600
+    )
+    hourly = series.resample("1h", closed=closed, label="right").mean()
+    coverage = spacing.resample("1h", closed=closed, label="right").sum().reindex(hourly.index)
+    hourly[coverage < 0.75] = float("nan")
+    return hourly.rename(kind)
