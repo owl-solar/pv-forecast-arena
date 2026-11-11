@@ -5,8 +5,9 @@ Hold-out period    = [holdout_start, end]: touched once for the final comparison
 hold-out, models are still refit every `refit_every_months` on all data that was known before each
 test window (expanding window), which is what an operational system would do.
 
-A test window starts at `test_start`. Training rows end `embargo` before it: a day-ahead forecast for
-the first test day is issued the day before, so the newest targets are not yet known.
+A test window starts at `test_start`. Training rows end `embargo` before it. A day-ahead forecast is
+issued at 10:00 local on the previous local day, up to 39 h before the hour it targets, so the
+newest targets are not yet known; the default of 2 days covers any window boundary.
 """
 
 from __future__ import annotations
@@ -32,13 +33,26 @@ def _utc(value: str | pd.Timestamp) -> pd.Timestamp:
     return ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
 
 
+def issue_time(
+    valid_time: pd.DatetimeIndex, local_timezone: str, issue_hour_local: int
+) -> pd.DatetimeIndex:
+    """UTC issue time of the day-ahead forecast for each hour-ending `valid_time`.
+
+    The target local day is the one containing the start of the hour; the forecast is issued at
+    `issue_hour_local` on the local day before it. A stamp <= issue time is a fully observed hour.
+    """
+    start = (valid_time - pd.Timedelta("1h")).tz_convert(local_timezone).tz_localize(None)
+    naive = start.normalize() - pd.Timedelta("1D") + pd.Timedelta(hours=issue_hour_local)
+    return naive.tz_localize(local_timezone).tz_convert("UTC")
+
+
 def walk_forward_splits(
     index: pd.DatetimeIndex,
     train_start: str | pd.Timestamp,
     first_test_start: str | pd.Timestamp,
     end: str | pd.Timestamp | None = None,
     refit_every_months: int = 1,
-    embargo: str | pd.Timedelta = "1D",
+    embargo: str | pd.Timedelta = "2D",
 ) -> Iterator[Split]:
     """Yield expanding-window splits: train = [train_start, test_start - embargo), test = one window.
 

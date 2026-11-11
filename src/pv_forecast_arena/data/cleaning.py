@@ -26,16 +26,26 @@ OUTAGE_POA_WM2 = 150  # sensor sees real sun ...
 OUTAGE_POWER_FRACTION = 0.02  # ... but output is below 2% of capacity
 
 
-def solar_geometry(index: pd.DatetimeIndex, latitude: float, longitude: float) -> pd.DataFrame:
-    """Sun position and clear-sky GHI at the middle of each hour-ending interval."""
+def solar_geometry(index: pd.DatetimeIndex, site: dict) -> pd.DataFrame:
+    """Sun position, clear-sky GHI and clear-sky POA at the middle of each hour-ending interval."""
     mid = index - pd.Timedelta("30min")
-    location = pvlib.location.Location(latitude, longitude, tz="UTC")
+    location = pvlib.location.Location(site["latitude"], site["longitude"], tz="UTC")
     position = location.get_solarposition(mid)
     clearsky = location.get_clearsky(mid, model="simplified_solis")
+    poa = pvlib.irradiance.get_total_irradiance(
+        site["tilt_deg"],
+        site["azimuth_deg"],
+        position["apparent_zenith"],
+        position["azimuth"],
+        clearsky["dni"],
+        clearsky["ghi"],
+        clearsky["dhi"],
+    )
     return pd.DataFrame(
         {
             "sun_elevation": position["apparent_elevation"].to_numpy(),
             "clearsky_ghi": clearsky["ghi"].to_numpy(),
+            "clearsky_poa": poa["poa_global"].fillna(0.0).to_numpy(),
         },
         index=index,
     )
@@ -86,7 +96,7 @@ def build_dataset(cfg: dict) -> pd.DataFrame:
     index = pd.date_range(start + pd.Timedelta("1h"), end, freq="1h", name="valid_time")
     meter, poa = meter.reindex(index), poa.reindex(index)
 
-    geometry = solar_geometry(index, cfg["site"]["latitude"], cfg["site"]["longitude"])
+    geometry = solar_geometry(index, cfg["site"])
     frame = clean_target(meter, poa, geometry, cfg)
     frame["obs_poa_wm2"] = poa
     frame = frame.join(geometry)
