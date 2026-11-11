@@ -19,7 +19,7 @@ USER_AGENT = "pv-forecast-arena"
 RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
-def _get_json(url: str, params: dict, attempts: int = 8) -> dict:
+def _get_json(url: str, params: dict, attempts: int = 10) -> dict:
     """GET with retries; Open-Meteo answers 503 'overloaded' and resets connections from time to time."""
     for attempt in range(1, attempts + 1):
         try:
@@ -74,6 +74,23 @@ def _base_params(cfg: dict) -> dict:
     }
 
 
+def _fetch_chunked(url: str, params: dict, months: int = 3, pause: float = 3.0) -> pd.DataFrame:
+    """Request the period in chunks of `months`: small requests are far less likely to hit rate limits."""
+    start, end = pd.Timestamp(params["start_date"]), pd.Timestamp(params["end_date"])
+    parts = []
+    while start <= end:
+        stop = min(start + pd.DateOffset(months=months) - pd.Timedelta("1D"), end)
+        chunk = {
+            **params,
+            "start_date": start.strftime("%Y-%m-%d"),
+            "end_date": stop.strftime("%Y-%m-%d"),
+        }
+        parts.append(_to_frame(_get_json(url, chunk)))
+        start = stop + pd.Timedelta("1D")
+        time.sleep(pause)
+    return pd.concat(parts)
+
+
 def download_forecasts(cfg: dict) -> Path:
     """Archived forecasts for every configured lead, columns like `shortwave_radiation_previous_day2`."""
     w = cfg["weather"]
@@ -83,7 +100,7 @@ def download_forecasts(cfg: dict) -> Path:
     leads = [w["lead_days"], *w.get("extra_lead_days", [])]
     names = [f"{v}_previous_day{lead}" for lead in leads for v in w["variables"]]
     params = {**_base_params(cfg), "models": w["previous_runs_model"], "hourly": ",".join(names)}
-    return _store(_to_frame(_get_json(PREVIOUS_RUNS_URL, params)), path)
+    return _store(_fetch_chunked(PREVIOUS_RUNS_URL, params), path)
 
 
 def download_oracle(cfg: dict) -> Path:
@@ -93,7 +110,7 @@ def download_oracle(cfg: dict) -> Path:
     if path.exists():
         return path
     params = {**_base_params(cfg), "models": w["oracle_model"], "hourly": ",".join(w["variables"])}
-    return _store(_to_frame(_get_json(ARCHIVE_URL, params)), path)
+    return _store(_fetch_chunked(ARCHIVE_URL, params), path)
 
 
 def load_forecasts(cfg: dict, lead_days: int | None = None) -> pd.DataFrame:

@@ -82,7 +82,7 @@ def build_dataset(cfg: dict) -> pd.DataFrame:
     meter = pvdaq.load_hourly(cfg, "meter")
     poa = pvdaq.load_hourly(cfg, "irradiance")
     start = pd.Timestamp(cfg["data"]["start"], tz="UTC")
-    end = pd.Timestamp(cfg["data"]["end"], tz="UTC") + pd.Timedelta("1D")
+    end = pd.Timestamp(cfg["data"]["end"], tz="UTC") + pd.Timedelta("23h")
     index = pd.date_range(start + pd.Timedelta("1h"), end, freq="1h", name="valid_time")
     meter, poa = meter.reindex(index), poa.reindex(index)
 
