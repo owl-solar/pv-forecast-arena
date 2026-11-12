@@ -1,0 +1,7 @@
+model,against,variant,n_hours,nrmse,nmae,mbe,ref_nrmse,skill,skill_lo,skill_hi
+hybrid_lgbm_residual,physics_static_erbs_perez,all,4069,0.1483,0.1031,0.0328,0.1662,0.1079,0.0868,0.1299
+hybrid_lgbm_residual,physics_static_erbs_perez,clean,4060,0.1477,0.1028,0.0323,0.1654,0.1074,0.0863,0.1297
+ml_lgbm_csi,physics_static_erbs_perez,all,4069,0.1539,0.1052,0.0425,0.1662,0.0741,0.0531,0.0982
+ml_lgbm_csi,physics_static_erbs_perez,clean,4060,0.1532,0.1048,0.0419,0.1654,0.0742,0.0531,0.0988
+hybrid_lgbm_residual,ml_lgbm_csi,all,4069,0.1483,0.1031,0.0328,0.1539,0.0365,0.0204,0.0518
+hybrid_lgbm_residual,ml_lgbm_csi,clean,4060,0.1477,0.1028,0.0323,0.1532,0.0358,0.0199,0.0514

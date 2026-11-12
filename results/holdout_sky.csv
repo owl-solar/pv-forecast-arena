@@ -1,0 +1,13 @@
+name,sky,n_hours,nrmse,mbe
+baseline_smart_persistence,overcast (<0.4),477,0.2809,0.1717
+baseline_smart_persistence,partly cloudy,831,0.2385,0.0603
+baseline_smart_persistence,clear (>=0.8),2761,0.1786,-0.0455
+physics_static_erbs_perez,overcast (<0.4),477,0.2755,0.1149
+physics_static_erbs_perez,partly cloudy,831,0.2136,0.0655
+physics_static_erbs_perez,clear (>=0.8),2761,0.1178,0.0065
+ml_lgbm_csi,overcast (<0.4),477,0.2716,0.1731
+ml_lgbm_csi,partly cloudy,831,0.1968,0.0791
+ml_lgbm_csi,clear (>=0.8),2761,0.1025,0.0089
+hybrid_lgbm_residual,overcast (<0.4),477,0.2587,0.1518
+hybrid_lgbm_residual,partly cloudy,831,0.1934,0.0645
+hybrid_lgbm_residual,clear (>=0.8),2761,0.0979,0.0028
