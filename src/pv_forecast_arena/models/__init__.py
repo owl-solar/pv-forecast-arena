@@ -35,6 +35,17 @@ def _persistence(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Series:
     return baselines.persistence(frame, cfg).reindex(split.test_index)
 
 
+def _lazy_dl(name: str) -> Callable:
+    """The deep-learning models import torch only when they run (the `dl` extra is optional)."""
+
+    def predict(frame, split, cfg):
+        from pv_forecast_arena.models import dl
+
+        return getattr(dl, name)(frame, split, cfg)
+
+    return predict
+
+
 MODELS: dict[str, Predict] = {
     "persistence": _persistence,
     "smart_persistence": _smart_persistence,
@@ -42,6 +53,7 @@ MODELS: dict[str, Predict] = {
     "physics_measured_poa": physics.predict_measured_poa,
     "gbm": gbm.predict,
     "hybrid": hybrid.predict,
+    "dl_lstm": _lazy_dl("predict_lstm"),
 }
 
 
@@ -51,6 +63,7 @@ QuantilePredict = Callable[[pd.DataFrame, Split, dict], pd.DataFrame]
 QUANTILE_MODELS: dict[str, QuantilePredict] = {
     "quantile_empirical": quantile.predict_empirical,
     "quantile_lgbm": quantile.predict_lgbm,
+    "dl_tft_quantile": _lazy_dl("predict_tft_quantiles"),
 }
 
 

@@ -1,0 +1,11 @@
+extends: ../base.yaml
+name: dl_lstm
+horizon: day_ahead
+model:
+  type: dl_lstm
+  input_hours: 48
+  hidden: 32
+  layers: 1
+  epochs: 30
+  patience: 3
+  lr: 0.001

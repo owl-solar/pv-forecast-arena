@@ -1,0 +1,11 @@
+model,against,variant,n_hours,nrmse,nmae,mbe,ref_nrmse,skill,skill_lo,skill_hi
+dl_lstm,hybrid_lgbm_residual,all,2405,0.1323,0.0788,0.0198,0.1252,-0.0571,-0.1051,-0.0175
+dl_lstm,hybrid_lgbm_residual,clean,2383,0.1166,0.0737,0.0142,0.1096,-0.0639,-0.1209,-0.0157
+dl_tft_quantile,hybrid_lgbm_residual,all,2405,0.1381,0.0870,0.0573,0.1252,-0.1032,-0.1531,-0.0658
+dl_tft_quantile,hybrid_lgbm_residual,clean,2383,0.1242,0.0822,0.0523,0.1096,-0.1332,-0.1781,-0.0913
+dl_lstm,physics_static_erbs_perez,all,2405,0.1323,0.0788,0.0198,0.1294,-0.0222,-0.0702,0.0212
+dl_lstm,physics_static_erbs_perez,clean,2383,0.1166,0.0737,0.0142,0.1144,-0.0193,-0.0814,0.0340
+dl_tft_quantile,physics_static_erbs_perez,all,2405,0.1381,0.0870,0.0573,0.1294,-0.0667,-0.1162,-0.0245
+dl_tft_quantile,physics_static_erbs_perez,clean,2383,0.1242,0.0822,0.0523,0.1144,-0.0857,-0.1396,-0.0311
+dl_tft_quantile,dl_lstm,all,2405,0.1381,0.0870,0.0573,0.1323,-0.0436,-0.0892,-0.0044
+dl_tft_quantile,dl_lstm,clean,2383,0.1242,0.0822,0.0523,0.1166,-0.0652,-0.1108,-0.0165

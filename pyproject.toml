@@ -19,7 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "jupyter"]
-dl = ["darts"]
+dl = ["darts", "torch", "pytorch-lightning"]
 app = ["streamlit", "plotly"]
 
 [build-system]

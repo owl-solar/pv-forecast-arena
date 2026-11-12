@@ -1,0 +1,14 @@
+extends: ../base.yaml
+name: dl_tft_quantile
+horizon: day_ahead_quantile
+quantile:
+  levels: [0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95]
+model:
+  type: dl_tft_quantile
+  input_hours: 48
+  hidden: 16
+  heads: 2
+  dropout: 0.1
+  epochs: 30
+  patience: 3
+  lr: 0.001
