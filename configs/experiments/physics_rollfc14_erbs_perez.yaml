@@ -1,0 +1,9 @@
+extends: ../base.yaml
+name: physics_rollfc14_erbs_perez
+horizon: day_ahead
+model:
+  type: physics
+  decomposition: erbs
+  transposition: perez
+  calibration: rolling_forecast
+  rolling_days: 14

@@ -1,0 +1,9 @@
+extends: ../base.yaml
+name: physics_rollpoa30_erbs_perez
+horizon: day_ahead
+model:
+  type: physics
+  decomposition: erbs
+  transposition: perez
+  calibration: rolling_poa
+  rolling_days: 30

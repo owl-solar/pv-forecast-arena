@@ -30,3 +30,18 @@ def select_features(
     if forbidden:
         raise ValueError(f"Columns not allowed as model inputs (oracle={oracle}): {forbidden}")
     return frame[columns]
+
+
+# Measurements of the target hour itself. A model may read them only to aggregate hours stamped at or
+# before the issue time (rolling calibration, persistence); tests/test_no_leakage.py corrupts every
+# later value of these columns and requires the forecast to stay unchanged.
+PAST_ONLY_COLUMNS = ("ac_power_kw", "obs_poa_wm2")
+
+
+def select_past(frame: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
+    """Return past-only measurement columns, raising for anything else."""
+    columns = list(columns)
+    forbidden = sorted(set(columns) - set(PAST_ONLY_COLUMNS))
+    if forbidden:
+        raise ValueError(f"Not a past-only measurement column: {forbidden}")
+    return frame[columns]

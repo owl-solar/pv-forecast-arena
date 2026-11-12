@@ -1,0 +1,8 @@
+extends: ../base.yaml
+name: physics_static_erbs_isotropic
+horizon: day_ahead
+model:
+  type: physics
+  decomposition: erbs
+  transposition: isotropic
+  calibration: static

@@ -1,0 +1,8 @@
+extends: ../base.yaml
+name: physics_raw_gfsdirect_perez
+horizon: day_ahead
+model:
+  type: physics
+  decomposition: gfs_direct
+  transposition: perez
+  calibration: raw

@@ -12,7 +12,7 @@ from collections.abc import Callable
 import pandas as pd
 
 from pv_forecast_arena.evaluation.splits import Split
-from pv_forecast_arena.models import baselines
+from pv_forecast_arena.models import baselines, physics
 
 Predict = Callable[[pd.DataFrame, Split, dict], pd.Series]
 
@@ -28,6 +28,7 @@ def _persistence(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Series:
 MODELS: dict[str, Predict] = {
     "persistence": _persistence,
     "smart_persistence": _smart_persistence,
+    "physics": physics.predict,
 }
 
 
