@@ -154,17 +154,28 @@ def weather_inputs(frame: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     return weather.rename(columns=lambda c: c.removeprefix(prefix))
 
 
-def components(frame: pd.DataFrame, split: Split, cfg: dict, model_cfg: dict | None = None) -> dict:
+def components(
+    frame: pd.DataFrame,
+    split: Split,
+    cfg: dict,
+    model_cfg: dict | None = None,
+    weather: pd.DataFrame | None = None,
+) -> dict:
     """Pieces of the physics forecast over the whole frame, fitted on `split.train_index`.
 
     Returns `unlimited` (model AC with k = 1, no inverter limit), `k` (scale per hour), `k_static`,
     `limit` and `forecast` = min(k * unlimited, limit). `model_cfg` defaults to `cfg["model"]`.
+    `weather` replaces the default day-ahead inputs (intraday runs pass the lead-1 forecast through
+    `features.lead1_forecast`); rolling calibrations assume day-ahead issue times, so they need the default.
     """
     m = cfg["model"] if model_cfg is None else model_cfg
     calibration = m.get("calibration", "raw")
     if calibration not in CALIBRATIONS:
         raise ValueError(f"unknown calibration {calibration!r}; known: {CALIBRATIONS}")
-    weather = weather_inputs(frame, cfg)
+    if weather is not None and calibration.startswith("rolling"):
+        raise ValueError("rolling calibration is defined for day-ahead issue times only")
+    if weather is None:
+        weather = weather_inputs(frame, cfg)
     model = unlimited_ac(weather, cfg, m["decomposition"], m["transposition"])
 
     train = split.train_index

@@ -8,7 +8,7 @@ from test_no_leakage import CFG, make_frame
 from pv_forecast_arena import features
 from pv_forecast_arena.evaluation import intraday as scoring
 from pv_forecast_arena.evaluation.splits import Split
-from pv_forecast_arena.models import intraday_baselines
+from pv_forecast_arena.models import intraday_baselines, intraday_physics
 
 ICFG = {**CFG, "intraday": {"horizons": [1, 2, 3, 4, 5, 6], "data_delay_hours": 1}}
 PAST_ONLY = ("ac_power_kw", "obs_poa_wm2")
@@ -31,8 +31,33 @@ def _model(name, window=1):
     return run
 
 
+def _physics_model(predict, **model_cfg):
+    def run(frame, horizon, delay=1):
+        frame = _with_lead1(frame)
+        cfg = {
+            **ICFG,
+            "model": {"decomposition": "erbs", "transposition": "perez", **model_cfg},
+        }
+        # Static scale and limit come from the first day only: later values may be corrupted.
+        return predict(frame, Split(frame.index[:24], frame.index), cfg, horizon)
+
+    return run
+
+
+def _with_lead1(frame):
+    """Lead-1 forecasts are archived weather, not measurements: the leakage test leaves them alone."""
+    out = frame.copy()
+    for variable in ICFG["weather"]["variables"]:
+        out[f"fc_lead1_{variable}"] = frame[f"fc_{variable}"] * 1.05
+    return out
+
+
 MODELS = {
     "persistence": _model("persistence"),
+    "physics_lead1": _physics_model(intraday_physics.predict),
+    "physics_nowcast": _physics_model(
+        intraday_physics.predict_nowcast, window_hours=2, decay_hours=3
+    ),
     "smart_1h": _model("smart", 1),
     "smart_3h": _model("smart", 3),
 }
@@ -87,7 +112,7 @@ def test_forecast_ignores_everything_after_issue_time(name, horizon):
     assert checked > 10
 
 
-@pytest.mark.parametrize("name", MODELS)
+@pytest.mark.parametrize("name", [n for n in MODELS if n != "physics_lead1"])  # reads no live data
 def test_the_leakage_test_can_fail(name):
     # Mutation check: the newest stamp the forecaster is allowed to see does change the forecast.
     frame = make_frame()

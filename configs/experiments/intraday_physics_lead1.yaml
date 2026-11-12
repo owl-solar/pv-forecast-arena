@@ -1,0 +1,4 @@
+extends: ../base.yaml
+name: intraday_physics_lead1
+horizon: intraday
+model: {type: intraday_physics, decomposition: erbs, transposition: perez}

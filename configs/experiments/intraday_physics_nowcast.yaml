@@ -1,0 +1,9 @@
+extends: ../base.yaml
+name: intraday_physics_nowcast
+horizon: intraday
+model:
+  type: intraday_physics_nowcast
+  decomposition: erbs
+  transposition: perez
+  window_hours: 1
+  decay_hours: 3
