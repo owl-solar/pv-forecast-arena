@@ -45,3 +45,18 @@ def select_past(frame: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
     if forbidden:
         raise ValueError(f"Not a past-only measurement column: {forbidden}")
     return frame[columns]
+
+
+def select_diagnostic(frame: pd.DataFrame, columns: Iterable[str], cfg: dict) -> pd.DataFrame:
+    """On-site measurements of the target hour itself, for runs marked `diagnostic: true` only.
+
+    Such runs say how much error comes from the weather input (they are not forecasts) and must never
+    be compared with real forecasts without that label.
+    """
+    if not cfg.get("diagnostic", False):
+        raise ValueError("on-site measurements of the target hour need `diagnostic: true`")
+    columns = list(columns)
+    forbidden = sorted(set(columns) - {"obs_poa_wm2"})
+    if forbidden:
+        raise ValueError(f"Not allowed even in diagnostic runs: {forbidden}")
+    return frame[columns]

@@ -29,6 +29,7 @@ MODELS: dict[str, Predict] = {
     "persistence": _persistence,
     "smart_persistence": _smart_persistence,
     "physics": physics.predict,
+    "physics_measured_poa": physics.predict_measured_poa,
 }
 
 

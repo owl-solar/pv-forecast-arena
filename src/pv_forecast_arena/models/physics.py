@@ -30,7 +30,7 @@ import pandas as pd
 import pvlib
 
 from pv_forecast_arena.evaluation.splits import Split, issue_time
-from pv_forecast_arena.features import select_features, select_past
+from pv_forecast_arena.features import select_diagnostic, select_features, select_past
 
 DECOMPOSITIONS = ("erbs", "gfs_direct")
 TRANSPOSITIONS = ("isotropic", "haydavies", "perez")
@@ -180,3 +180,23 @@ def predict(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Series:
 
     forecast = (k * model).clip(lower=0.0, upper=limit)
     return forecast.reindex(split.test_index).rename("physics")
+
+
+def predict_measured_poa(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Series:
+    """Diagnostic, not a forecast: the measured POA of the target hour drives PVWatts.
+
+    Isolates the plant model from the weather and transposition error. Air temperature and wind
+    still come from the forecast. Scale (static) and limit are fitted on `split.train_index`.
+    """
+    poa = select_diagnostic(frame, ["obs_poa_wm2"], cfg)["obs_poa_wm2"]
+    weather = select_features(frame, ["fc_temperature_2m", "fc_wind_speed_10m"], cfg)
+    weather = weather.rename(columns=lambda c: c.removeprefix("fc_"))
+    model = unlimited_ac_from_poa(poa, weather, cfg)
+    train = split.train_index
+    ac = select_past(frame, ["ac_power_kw"])["ac_power_kw"]
+    limit = float(ac.reindex(train).max())
+    k = 1.0
+    if cfg["model"].get("calibration", "raw") == "static":
+        k = fit_scale(ac.reindex(train).where(frame["is_daytime"]), model.reindex(train), limit)
+    forecast = (k * model).clip(lower=0.0, upper=limit)
+    return forecast.reindex(split.test_index).rename("physics_measured_poa")

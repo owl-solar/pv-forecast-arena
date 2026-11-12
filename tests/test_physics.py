@@ -101,3 +101,12 @@ def test_oracle_run_reads_only_oracle_columns():
     a = physics.predict(oracle, split_of(oracle), cfg)
     b = physics.predict(frame, split_of(frame), cfg_with(calibration="raw"))
     assert np.allclose(a, b)
+
+
+def test_measured_poa_run_requires_diagnostic_flag():
+    frame = make_frame(days=20)
+    cfg = cfg_with(calibration="raw")
+    with pytest.raises(ValueError, match="diagnostic"):
+        physics.predict_measured_poa(frame, split_of(frame), cfg)
+    out = physics.predict_measured_poa(frame, split_of(frame), {**cfg, "diagnostic": True})
+    assert out.notna().any()

@@ -1,0 +1,9 @@
+extends: ../base.yaml
+name: oracle_physics_static_erbs_perez
+horizon: day_ahead
+oracle: true          # observed weather (reanalysis), not a forecast
+model:
+  type: physics
+  decomposition: erbs
+  transposition: perez
+  calibration: static

@@ -1,0 +1,7 @@
+extends: ../base.yaml
+name: diagnostic_measured_poa_raw
+horizon: day_ahead
+diagnostic: true      # uses the on-site POA of the target hour, not a forecast
+model:
+  type: physics_measured_poa
+  calibration: raw
