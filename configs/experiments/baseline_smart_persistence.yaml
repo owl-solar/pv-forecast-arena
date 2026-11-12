@@ -1,0 +1,5 @@
+extends: ../base.yaml
+name: baseline_smart_persistence
+horizon: day_ahead
+model:
+  type: smart_persistence
