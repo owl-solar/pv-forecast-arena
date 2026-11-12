@@ -1,0 +1,10 @@
+name,sky,n,coverage_80,width_80
+quantile_empirical,overcast (<0.4),139,0.5036,0.1761
+quantile_empirical,partly cloudy,302,0.5530,0.1972
+quantile_empirical,clear (>=0.8),1944,0.8374,0.2079
+quantile_lgbm_residual,overcast (<0.4),139,0.5540,0.2678
+quantile_lgbm_residual,partly cloudy,302,0.5927,0.2301
+quantile_lgbm_residual,clear (>=0.8),1944,0.6507,0.0941
+quantile_lgbm_residual_conformal,overcast (<0.4),139,0.7050,0.3541
+quantile_lgbm_residual_conformal,partly cloudy,302,0.6854,0.2845
+quantile_lgbm_residual_conformal,clear (>=0.8),1944,0.7094,0.1273

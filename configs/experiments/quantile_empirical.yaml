@@ -1,0 +1,6 @@
+extends: ../base.yaml
+name: quantile_empirical
+horizon: day_ahead_quantile
+model:
+  type: quantile_empirical
+  physics: {decomposition: erbs, transposition: perez, calibration: static}

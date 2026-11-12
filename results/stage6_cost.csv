@@ -1,0 +1,43 @@
+scenario,c_short,c_surplus,strategy,variant,n_hours,cost_per_kwh,saving_vs_mean (point hybrid),saving_lo,saving_hi,q_star
+symmetric,1.0000,1.0000,mean (point hybrid),all,2405,0.1448,0.0000,0.0000,0.0000,0.5000
+symmetric,1.0000,1.0000,empirical band: median,all,2405,0.1613,-0.1135,-0.1528,-0.0779,0.5000
+symmetric,1.0000,1.0000,empirical band: q*,all,2405,0.1613,-0.1135,-0.1528,-0.0779,0.5000
+symmetric,1.0000,1.0000,LightGBM quantiles: median,all,2405,0.1454,-0.0043,-0.0275,0.0167,0.5000
+symmetric,1.0000,1.0000,LightGBM quantiles: q*,all,2405,0.1454,-0.0043,-0.0275,0.0167,0.5000
+symmetric,1.0000,1.0000,LightGBM + recalibration: median,all,2405,0.1537,-0.0613,-0.0897,-0.0357,0.5000
+symmetric,1.0000,1.0000,LightGBM + recalibration: q*,all,2405,0.1537,-0.0613,-0.0897,-0.0357,0.5000
+shortfall_dear,2.0000,1.0000,mean (point hybrid),all,2405,0.2368,0.0000,0.0000,0.0000,0.3333
+shortfall_dear,2.0000,1.0000,empirical band: median,all,2405,0.2694,-0.1377,-0.1834,-0.0957,0.3333
+shortfall_dear,2.0000,1.0000,empirical band: q*,all,2405,0.2232,0.0573,0.0254,0.0883,0.3333
+shortfall_dear,2.0000,1.0000,LightGBM quantiles: median,all,2405,0.2442,-0.0316,-0.0550,-0.0126,0.3333
+shortfall_dear,2.0000,1.0000,LightGBM quantiles: q*,all,2405,0.2149,0.0922,0.0685,0.1187,0.3333
+shortfall_dear,2.0000,1.0000,LightGBM + recalibration: median,all,2405,0.2607,-0.1013,-0.1338,-0.0713,0.3333
+shortfall_dear,2.0000,1.0000,LightGBM + recalibration: q*,all,2405,0.2140,0.0962,0.0696,0.1243,0.3333
+surplus_dear,1.0000,2.0000,mean (point hybrid),all,2405,0.1977,0.0000,0.0000,0.0000,0.6667
+surplus_dear,1.0000,2.0000,empirical band: median,all,2405,0.2144,-0.0845,-0.1243,-0.0443,0.6667
+surplus_dear,1.0000,2.0000,empirical band: q*,all,2405,0.2378,-0.2032,-0.2680,-0.1478,0.6667
+surplus_dear,1.0000,2.0000,LightGBM quantiles: median,all,2405,0.1921,0.0284,0.0032,0.0537,0.6667
+surplus_dear,1.0000,2.0000,LightGBM quantiles: q*,all,2405,0.1888,0.0448,0.0010,0.0843,0.6667
+surplus_dear,1.0000,2.0000,LightGBM + recalibration: median,all,2405,0.2003,-0.0135,-0.0434,0.0123,0.6667
+surplus_dear,1.0000,2.0000,LightGBM + recalibration: q*,all,2405,0.2104,-0.0644,-0.1196,-0.0160,0.6667
+symmetric,1.0000,1.0000,mean (point hybrid),clean,2383,0.1332,0.0000,0.0000,0.0000,0.5000
+symmetric,1.0000,1.0000,empirical band: median,clean,2383,0.1495,-0.1227,-0.1631,-0.0843,0.5000
+symmetric,1.0000,1.0000,empirical band: q*,clean,2383,0.1495,-0.1227,-0.1631,-0.0843,0.5000
+symmetric,1.0000,1.0000,LightGBM quantiles: median,clean,2383,0.1335,-0.0029,-0.0275,0.0198,0.5000
+symmetric,1.0000,1.0000,LightGBM quantiles: q*,clean,2383,0.1335,-0.0029,-0.0275,0.0198,0.5000
+symmetric,1.0000,1.0000,LightGBM + recalibration: median,clean,2383,0.1419,-0.0657,-0.0956,-0.0379,0.5000
+symmetric,1.0000,1.0000,LightGBM + recalibration: q*,clean,2383,0.1419,-0.0657,-0.0956,-0.0379,0.5000
+shortfall_dear,2.0000,1.0000,mean (point hybrid),clean,2383,0.2134,0.0000,0.0000,0.0000,0.3333
+shortfall_dear,2.0000,1.0000,empirical band: median,clean,2383,0.2458,-0.1518,-0.2018,-0.1059,0.3333
+shortfall_dear,2.0000,1.0000,empirical band: q*,clean,2383,0.2005,0.0607,0.0264,0.0932,0.3333
+shortfall_dear,2.0000,1.0000,LightGBM quantiles: median,clean,2383,0.2205,-0.0328,-0.0579,-0.0117,0.3333
+shortfall_dear,2.0000,1.0000,LightGBM quantiles: q*,clean,2383,0.1919,0.1010,0.0765,0.1270,0.3333
+shortfall_dear,2.0000,1.0000,LightGBM + recalibration: median,clean,2383,0.2372,-0.1111,-0.1451,-0.0790,0.3333
+shortfall_dear,2.0000,1.0000,LightGBM + recalibration: q*,clean,2383,0.1911,0.1047,0.0767,0.1328,0.3333
+surplus_dear,1.0000,2.0000,mean (point hybrid),clean,2383,0.1860,0.0000,0.0000,0.0000,0.6667
+surplus_dear,1.0000,2.0000,empirical band: median,clean,2383,0.2026,-0.0893,-0.1334,-0.0473,0.6667
+surplus_dear,1.0000,2.0000,empirical band: q*,clean,2383,0.2255,-0.2125,-0.2819,-0.1531,0.6667
+surplus_dear,1.0000,2.0000,LightGBM quantiles: median,clean,2383,0.1802,0.0315,0.0041,0.0579,0.6667
+surplus_dear,1.0000,2.0000,LightGBM quantiles: q*,clean,2383,0.1766,0.0508,0.0042,0.0913,0.6667
+surplus_dear,1.0000,2.0000,LightGBM + recalibration: median,clean,2383,0.1885,-0.0136,-0.0451,0.0133,0.6667
+surplus_dear,1.0000,2.0000,LightGBM + recalibration: q*,clean,2383,0.1984,-0.0666,-0.1252,-0.0149,0.6667

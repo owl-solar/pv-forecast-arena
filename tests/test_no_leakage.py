@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from pv_forecast_arena.evaluation.splits import Split, issue_time
-from pv_forecast_arena.models import baselines, gbm, hybrid, physics, tabular
+from pv_forecast_arena.models import baselines, gbm, hybrid, physics, quantile, tabular
 
 TZ = "America/Los_Angeles"
 CFG = {
@@ -66,6 +66,16 @@ def _tabular(predict, model_cfg):
     return model
 
 
+def _median(predict, model_cfg):
+    """A quantile model seen as a point forecast: its median column."""
+    inner = _tabular(predict, model_cfg)
+
+    def model(frame, cfg):
+        return inner(frame, {**cfg, "quantile": {"levels": [0.1, 0.5, 0.9]}})["q50"]
+
+    return model
+
+
 PHYSICS_CFG = {"decomposition": "erbs", "transposition": "perez", "calibration": "static"}
 MODELS = {
     "persistence": baselines.persistence,
@@ -75,6 +85,11 @@ MODELS = {
     "gbm": _tabular(gbm.predict, {"target": "ac"}),
     "hybrid_residual_past": _tabular(
         hybrid.predict,
+        {"target": "residual", "use_past": True, "rolling_days": 3, "physics": PHYSICS_CFG},
+    ),
+    "quantile_empirical": _median(quantile.predict_empirical, {"physics": PHYSICS_CFG}),
+    "quantile_lgbm_past": _median(
+        quantile.predict_lgbm,
         {"target": "residual", "use_past": True, "rolling_days": 3, "physics": PHYSICS_CFG},
     ),
     "hybrid_csi_past_xgb": _tabular(

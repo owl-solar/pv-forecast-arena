@@ -21,6 +21,7 @@ from pv_forecast_arena.models import (
     intraday_gbm,
     intraday_physics,
     physics,
+    quantile,
 )
 
 Predict = Callable[[pd.DataFrame, Split, dict], pd.Series]
@@ -42,6 +43,24 @@ MODELS: dict[str, Predict] = {
     "gbm": gbm.predict,
     "hybrid": hybrid.predict,
 }
+
+
+QuantilePredict = Callable[[pd.DataFrame, Split, dict], pd.DataFrame]
+
+# Day-ahead quantile models: `predict(frame, split, cfg)` -> DataFrame, one column per level.
+QUANTILE_MODELS: dict[str, QuantilePredict] = {
+    "quantile_empirical": quantile.predict_empirical,
+    "quantile_lgbm": quantile.predict_lgbm,
+}
+
+
+def get_quantile_model(model_type: str) -> QuantilePredict:
+    try:
+        return QUANTILE_MODELS[model_type]
+    except KeyError:
+        raise ValueError(
+            f"unknown quantile model type {model_type!r}; known: {sorted(QUANTILE_MODELS)}"
+        ) from None
 
 
 IntradayPredict = Callable[[pd.DataFrame, Split, dict, int], pd.Series]
