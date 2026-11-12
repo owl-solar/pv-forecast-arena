@@ -1,4 +1,7 @@
-"""Stage 1 verification figures: power vs forecast GHI, one clear and one cloudy week."""
+"""Stage 1 verification figures: power vs forecast GHI, one clear and one cloudy week.
+
+Built from the development period only (before `evaluation.holdout_start`).
+"""
 
 import argparse
 from pathlib import Path
@@ -77,13 +80,17 @@ if __name__ == "__main__":
     ap.add_argument("--config", default="configs/base.yaml")
     cfg = load_config(ap.parse_args().config)
     d = pd.read_parquet(Path(cfg["data"]["processed_dir"]) / "dataset.parquet")
+    # Development period only: the hold-out must not be looked at before the final comparison.
+    d = d[d.index < pd.Timestamp(cfg["evaluation"]["holdout_start"], tz="UTC")]
     out = Path("results/figures")
     out.mkdir(parents=True, exist_ok=True)
     scatter(d, cfg, out / "power_vs_forecast_ghi.png")
 
     # Weeks are picked from on-site clear-sky index (not from the forecast), full weeks without bad hours.
-    daily = d.resample("1D").agg({"obs_poa_wm2": "sum", "clearsky_ghi": "sum", "flag_bad": "sum"})
-    daily["csi"] = daily.obs_poa_wm2 / daily.clearsky_ghi
+    # Measured POA is compared with clear-sky POA: against clear-sky GHI the tilted plane looks
+    # "clearer" in winter, which biased the pick towards December.
+    daily = d.resample("1D").agg({"obs_poa_wm2": "sum", "clearsky_poa": "sum", "flag_bad": "sum"})
+    daily["csi"] = daily.obs_poa_wm2 / daily.clearsky_poa
     weeks = daily.resample("7D").agg({"csi": "mean", "flag_bad": "sum"})
     weeks = weeks[(weeks.flag_bad == 0) & (weeks.index >= "2024-03-01")].iloc[:-1]
     clear, cloudy = weeks.csi.idxmax(), weeks.csi.idxmin()
