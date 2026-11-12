@@ -1,0 +1,9 @@
+extends: ../base.yaml
+name: hybrid_lgbm_residual_nopast
+horizon: day_ahead
+model:
+  type: hybrid
+  learner: lightgbm
+  target: residual
+  use_past: false
+  physics: {decomposition: erbs, transposition: perez, calibration: static}

@@ -1,0 +1,10 @@
+extends: ../base.yaml
+name: hybrid_lgbm_feature
+horizon: day_ahead
+model:
+  type: hybrid
+  learner: lightgbm
+  target: ac
+  use_past: true
+  rolling_days: 30
+  physics: {decomposition: erbs, transposition: perez, calibration: static}

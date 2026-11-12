@@ -1,0 +1,7 @@
+extends: ../base.yaml
+name: ml_xgb_ac
+horizon: day_ahead
+model:
+  type: gbm
+  learner: xgboost
+  target: ac
