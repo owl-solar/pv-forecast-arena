@@ -29,3 +29,7 @@ hybrid_lgbm_residual,hybrid_lgbm_residual_nopast,all,2405,0.1252,0.0690,0.0186,0
 hybrid_lgbm_residual,hybrid_lgbm_residual_nopast,clean,2383,0.1096,0.0640,0.0132,0.1098,0.0012,-0.0205,0.0225
 hybrid_lgbm_residual_doy,hybrid_lgbm_residual,all,2405,0.1246,0.0673,0.0211,0.1252,0.0043,-0.0118,0.0218
 hybrid_lgbm_residual_doy,hybrid_lgbm_residual,clean,2383,0.1076,0.0621,0.0155,0.1096,0.0182,0.0065,0.0302
+oracle_hybrid_lgbm_residual,hybrid_lgbm_residual,all,2405,0.1099,0.0600,0.0221,0.1252,0.1216,0.0689,0.1864
+oracle_hybrid_lgbm_residual,hybrid_lgbm_residual,clean,2383,0.0909,0.0549,0.0166,0.1096,0.1712,0.1199,0.2250
+oracle_hybrid_lgbm_residual,oracle_physics_static_erbs_perez,all,2405,0.1099,0.0600,0.0221,0.1121,0.0195,-0.0118,0.0506
+oracle_hybrid_lgbm_residual,oracle_physics_static_erbs_perez,clean,2383,0.0909,0.0549,0.0166,0.0945,0.0385,0.0199,0.0577
