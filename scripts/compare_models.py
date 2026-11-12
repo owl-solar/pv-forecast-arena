@@ -267,8 +267,9 @@ def plot_skill(table: pd.DataFrame, out: Path, stage_no: int) -> None:
         for n, o, d in zip(t["name"], t["oracle"], t["diagnostic"])
     ]
     axes[0][0].set_yticks(np.arange(len(t)), labels)
+    period = "2024-08..12" if stage_no == 4 else "2024-06..12"
     fig.suptitle(
-        "Skill on the development period (2024-06..12, all daytime hours)\n"
+        f"Skill on the development period ({period}, all daytime hours)\n"
         "grey = oracle / diagnostic runs, not forecasts",
         x=0.02,
         ha="left",
