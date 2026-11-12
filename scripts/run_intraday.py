@@ -59,7 +59,19 @@ def run(cfg: dict, holdout: bool = False) -> list[dict]:
     run_id = registry.new_run_id(cfg["name"])
     commit, dirty = registry.git_state()
     rows = []
+    meta = {
+        "run_id": run_id,
+        "name": cfg["name"],
+        "model": cfg["model"]["type"],
+        "horizon": "intraday",
+        "period": "holdout" if holdout else "development",
+        "oracle": bool(cfg.get("oracle", False)),
+        "diagnostic": bool(cfg.get("diagnostic", False)),
+    }
+    tail = {"commit": commit, "dirty": dirty, "config_hash": registry.config_hash(cfg)}
     for variant in ("all", "clean"):
+        # common: hours where the intraday reference exists too (it has none in the morning, so
+        # long horizons shrink to the afternoon). Skill is against it; skill_dayahead on the same hours.
         vs_main = scoring.score_horizons(
             frame, forecasts, reference, cfg, variant, {h: (dayahead,) for h in forecasts}
         )
@@ -69,21 +81,33 @@ def run(cfg: dict, holdout: bool = False) -> list[dict]:
         for main, day in zip(vs_main, vs_day, strict=True):
             rows.append(
                 {
-                    "run_id": run_id,
-                    "name": cfg["name"],
-                    "model": cfg["model"]["type"],
-                    "horizon": "intraday",
-                    "period": "holdout" if holdout else "development",
-                    "oracle": bool(cfg.get("oracle", False)),
-                    "diagnostic": bool(cfg.get("diagnostic", False)),
+                    **meta,
+                    "scope": "common",
                     **main,
                     "dayahead_nrmse": day["ref_nrmse"],
                     "skill_dayahead": day["skill"],
                     "skill_dayahead_lo": day["skill_lo"],
                     "skill_dayahead_hi": day["skill_hi"],
-                    "commit": commit,
-                    "dirty": dirty,
-                    "config_hash": registry.config_hash(cfg),
+                    **tail,
+                }
+            )
+        # fullday: every daytime hour the model forecasts, against the day-ahead model only.
+        # This is the fair view for models that, unlike smart persistence, work in the morning.
+        for day in scoring.score_horizons(frame, forecasts, dayahead_h, cfg, variant):
+            rows.append(
+                {
+                    **meta,
+                    "scope": "fullday",
+                    **{k: v for k, v in day.items() if k in ("lead_h", "variant", "n_hours")},
+                    "nrmse": day["nrmse"],
+                    "nmae": day["nmae"],
+                    "mbe": day["mbe"],
+                    "coverage": day["coverage"],
+                    "dayahead_nrmse": day["ref_nrmse"],
+                    "skill_dayahead": day["skill"],
+                    "skill_dayahead_lo": day["skill_lo"],
+                    "skill_dayahead_hi": day["skill_hi"],
+                    **tail,
                 }
             )
     out = Path("runs") / run_id
@@ -105,5 +129,5 @@ if __name__ == "__main__":
     if args.holdout and registry.git_state()[1]:
         raise SystemExit("refusing to touch the hold-out with uncommitted changes: commit first")
     for row in run(cfg, holdout=args.holdout):
-        if row["variant"] == "all":
+        if row["variant"] == "all" and row["lead_h"] == "pooled":
             print({k: (round(v, 4) if isinstance(v, float) else v) for k, v in row.items()})
