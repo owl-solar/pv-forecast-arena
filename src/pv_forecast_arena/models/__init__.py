@@ -21,7 +21,14 @@ def _smart_persistence(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Serie
     return baselines.smart_persistence(frame, cfg).reindex(split.test_index)
 
 
-MODELS: dict[str, Predict] = {"smart_persistence": _smart_persistence}
+def _persistence(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Series:
+    return baselines.persistence(frame, cfg).reindex(split.test_index)
+
+
+MODELS: dict[str, Predict] = {
+    "persistence": _persistence,
+    "smart_persistence": _smart_persistence,
+}
 
 
 def get_model(model_type: str) -> Predict:

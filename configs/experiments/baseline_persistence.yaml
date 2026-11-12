@@ -1,5 +1,5 @@
 extends: ../base.yaml
 name: baseline_persistence
-horizon: day_ahead
+horizon: day_ahead   # same hour of the latest day fully observed at the 10:00 local D-1 issue time
 model:
   type: persistence
