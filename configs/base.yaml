@@ -57,6 +57,10 @@ evaluation:
   cv: walk_forward
   daytime_only: true
   reference: smart_persistence
+  # Second reference in every run (skill_phys): the Stage 2 winner, always on real forecast inputs.
+  second_reference:
+    name: physics_static_erbs_perez
+    model: {type: physics, decomposition: erbs, transposition: perez, calibration: static}
   metrics: [nrmse, nmae, mbe, skill]
 
 seed: 42

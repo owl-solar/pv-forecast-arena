@@ -17,14 +17,23 @@ VARIANTS = ("all", "clean")
 
 
 def evaluation_mask(
-    frame: pd.DataFrame, forecast: pd.Series, reference: pd.Series, variant: str
+    frame: pd.DataFrame,
+    forecast: pd.Series,
+    reference: pd.Series,
+    variant: str,
+    others: tuple[pd.Series, ...] = (),
 ) -> pd.Series:
-    """Boolean mask of the hours that enter the metrics (index-aligned to `forecast`)."""
+    """Boolean mask of the hours that enter the metrics (index-aligned to `forecast`).
+
+    `others` are further forecasts that must exist too, so that scores against several references
+    are computed on the same hours.
+    """
     if variant not in VARIANTS:
         raise ValueError(f"unknown variant {variant!r}, expected one of {VARIANTS}")
     rows = frame.loc[forecast.index]
     mask = rows["is_daytime"] & rows["ac_power_kw"].notna() & forecast.notna()
-    mask &= reference.reindex(forecast.index).notna()
+    for other in (reference, *others):
+        mask &= other.reindex(forecast.index).notna()
     if variant == "clean":
         mask &= ~rows["flag_bad"]
     return mask
@@ -57,10 +66,14 @@ def score(
     reference: pd.Series,
     cfg: dict,
     variant: str = "all",
+    others: tuple[pd.Series, ...] = (),
 ) -> dict:
-    """Metrics of `forecast` on the common mask; skill is against `reference` (smart persistence)."""
+    """Metrics of `forecast` on the common mask; skill is against `reference` (smart persistence).
+
+    `others` only narrow the mask (see `evaluation_mask`).
+    """
     capacity = cfg["site"]["ac_capacity_kw"]
-    mask = evaluation_mask(frame, forecast, reference, variant)
+    mask = evaluation_mask(frame, forecast, reference, variant, others)
     if not mask.any():
         raise ValueError("no hours left to evaluate")
     index = forecast.index[mask]

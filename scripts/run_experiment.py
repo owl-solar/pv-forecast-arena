@@ -1,5 +1,8 @@
 """Run one experiment from a YAML config: walk-forward forecasts, metrics, registry row.
 
+Every run is scored against two references on the same hours: smart persistence (`skill`) and the
+physics model named in `evaluation.second_reference` (`skill_phys`), the Stage 2 winner.
+
 Development period by default. `--holdout` evaluates the hold-out period instead and is refused on
 a dirty git tree, so the code that produced a hold-out result is always a commit.
 """
@@ -15,20 +18,33 @@ from pv_forecast_arena.evaluation import evaluate, registry, splits
 from pv_forecast_arena.models import baselines, get_model
 
 
-def run(cfg: dict, holdout: bool = False) -> list[dict]:
-    frame = load_dataset(cfg, holdout=holdout)
-    ev = cfg["evaluation"]
+def walk_forward(frame: pd.DataFrame, cfg: dict, holdout: bool) -> pd.Series:
+    """Concatenated test-window forecasts of `cfg["model"]` over the chosen period."""
     make_splits = splits.holdout_splits if holdout else splits.development_splits
     predict = get_model(cfg["model"]["type"])
+    parts = [predict(frame, s, cfg) for s in make_splits(frame.index, cfg["evaluation"])]
+    return pd.concat(parts).rename("forecast")
 
-    parts = [predict(frame, s, cfg) for s in make_splits(frame.index, ev)]
-    forecast = pd.concat(parts).rename("forecast")
+
+def second_reference(frame: pd.DataFrame, cfg: dict, holdout: bool) -> pd.Series:
+    """Forecast of the reference physics model: real forecast inputs even in oracle runs."""
+    ref = cfg["evaluation"]["second_reference"]
+    ref_cfg = {**cfg, "name": ref["name"], "model": ref["model"], "oracle": False}
+    ref_cfg["diagnostic"] = False
+    return walk_forward(frame, ref_cfg, holdout)
+
+
+def run(cfg: dict, holdout: bool = False) -> list[dict]:
+    frame = load_dataset(cfg, holdout=holdout)
+    forecast = walk_forward(frame, cfg, holdout)
     reference = baselines.smart_persistence(frame, cfg)
+    physics_ref = second_reference(frame, cfg, holdout)
 
     run_id = registry.new_run_id(cfg["name"])
     commit, dirty = registry.git_state()
     rows = []
     for variant in evaluate.VARIANTS:
+        vs_phys = evaluate.score(frame, forecast, physics_ref, cfg, variant, (reference,))
         rows.append(
             {
                 "run_id": run_id,
@@ -38,7 +54,11 @@ def run(cfg: dict, holdout: bool = False) -> list[dict]:
                 "period": "holdout" if holdout else "development",
                 "oracle": bool(cfg.get("oracle", False)),
                 "diagnostic": bool(cfg.get("diagnostic", False)),
-                **evaluate.score(frame, forecast, reference, cfg, variant),
+                **evaluate.score(frame, forecast, reference, cfg, variant, (physics_ref,)),
+                "phys_nrmse": vs_phys["ref_nrmse"],
+                "skill_phys": vs_phys["skill"],
+                "skill_phys_lo": vs_phys["skill_lo"],
+                "skill_phys_hi": vs_phys["skill_hi"],
                 "commit": commit,
                 "dirty": dirty,
                 "config_hash": registry.config_hash(cfg),

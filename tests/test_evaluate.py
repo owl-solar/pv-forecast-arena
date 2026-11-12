@@ -96,3 +96,16 @@ def test_registry_appends_and_keeps_all_columns(tmp_path):
     assert set(table.columns) == {"run_id", "nrmse", "extra"}
     assert registry.config_hash({"a": 1}) == registry.config_hash({"a": 1})
     assert registry.config_hash({"a": 1}) != registry.config_hash({"a": 2})
+
+
+def test_others_narrow_the_mask_to_hours_every_forecast_has():
+    frame = make_frame()
+    forecast = frame["ac_power_kw"] * 0.9
+    reference = frame["ac_power_kw"] * 0.8
+    other = frame["ac_power_kw"].copy()
+    gap = frame.index[frame["is_daytime"]][4]
+    other[gap] = np.nan
+    base = evaluate.score(frame, forecast, reference, CFG)
+    narrowed = evaluate.score(frame, forecast, reference, CFG, others=(other,))
+    assert narrowed["n_hours"] == base["n_hours"] - 1
+    assert not evaluate.evaluation_mask(frame, forecast, reference, "all", (other,))[gap]
