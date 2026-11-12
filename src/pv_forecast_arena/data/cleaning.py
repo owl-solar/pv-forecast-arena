@@ -3,7 +3,8 @@
 Flags are columns, rows are never dropped, so each experiment can decide what to exclude:
 - flag_missing:  no valid target value for the hour.
 - flag_stuck:    daytime output repeated unchanged for `stuck_window_hours` hours (pvanalytics).
-- flag_outage:   the on-site POA sensor sees sun but the plant delivers (almost) nothing.
+- flag_outage:   the on-site POA sensor (or archived GHI when the sensor is down) sees sun but the
+                 plant delivers (almost) nothing.
 - flag_clipping: power at the plateau of the daily profile (pvanalytics); kept in the data, informative only.
 - night_zeroed:  night hours with non-zero output that were set to 0 (counted, not a quality flag).
 `flag_bad` = missing | stuck | outage; metrics on "clean" hours use ~flag_bad.
@@ -52,9 +53,17 @@ def solar_geometry(index: pd.DatetimeIndex, site: dict) -> pd.DataFrame:
 
 
 def clean_target(
-    ac_kw: pd.Series, poa: pd.Series, geometry: pd.DataFrame, cfg: dict
+    ac_kw: pd.Series,
+    poa: pd.Series,
+    geometry: pd.DataFrame,
+    cfg: dict,
+    backup_irradiance: pd.Series | None = None,
 ) -> pd.DataFrame:
-    """Return the cleaned target and its flags (all aligned to `ac_kw.index`)."""
+    """Return the cleaned target and its flags (all aligned to `ac_kw.index`).
+
+    `backup_irradiance` (observed GHI from the weather archive) replaces the on-site POA in the
+    outage test for hours when the POA sensor is down, which often happens during plant outages.
+    """
     capacity = cfg["site"]["ac_capacity_kw"]
     c = cfg["cleaning"]
     elevation = geometry["sun_elevation"]
@@ -70,7 +79,8 @@ def clean_target(
     missing = ac.isna()
     stale = gaps.stale_values_round(ac, window=c["stuck_window_hours"], decimals=1, mark="all")
     stuck = stale & daytime & (ac > 0)
-    outage = daytime & (poa > OUTAGE_POA_WM2) & (ac < OUTAGE_POWER_FRACTION * capacity)
+    sun = poa if backup_irradiance is None else poa.fillna(backup_irradiance)
+    outage = daytime & (sun > OUTAGE_POA_WM2) & (ac < OUTAGE_POWER_FRACTION * capacity)
 
     valid = ac.where(~missing)
     clip = clipping.threshold(valid.fillna(0.0), freq="1h", power_quantile=c["clipping_quantile"])
@@ -97,7 +107,8 @@ def build_dataset(cfg: dict) -> pd.DataFrame:
     meter, poa = meter.reindex(index), poa.reindex(index)
 
     geometry = solar_geometry(index, cfg["site"])
-    frame = clean_target(meter, poa, geometry, cfg)
+    oracle = weather.load_oracle(cfg).reindex(index)
+    frame = clean_target(meter, poa, geometry, cfg, oracle["oracle_shortwave_radiation"])
     frame["obs_poa_wm2"] = poa
     frame = frame.join(geometry)
     frame["is_daytime"] = frame["sun_elevation"] > cfg["cleaning"]["daytime_elevation_deg"]
@@ -106,7 +117,7 @@ def build_dataset(cfg: dict) -> pd.DataFrame:
     frame = frame.join(weather.load_forecasts(cfg).add_prefix("fc_"))
     for lead in cfg["weather"].get("extra_lead_days", []):
         frame = frame.join(weather.load_forecasts(cfg, lead).add_prefix(f"fc_lead{lead}_"))
-    return frame.join(weather.load_oracle(cfg))
+    return frame.join(oracle)
 
 
 def save_dataset(frame: pd.DataFrame, cfg: dict) -> Path:

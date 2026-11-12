@@ -41,6 +41,16 @@ def test_outage_flagged_when_sun_but_no_power():
     assert out["flag_outage"].sum() == 1
 
 
+def test_outage_uses_backup_irradiance_when_poa_missing():
+    ac, poa, geometry = make()
+    hour = ac.index[geometry["sun_elevation"] > 5][4]
+    ac[hour] = 0.0
+    poa[hour] = np.nan
+    assert not cleaning.clean_target(ac, poa, geometry, CFG)["flag_outage"].any()
+    out = cleaning.clean_target(ac, poa, geometry, CFG, backup_irradiance=poa.fillna(600.0))
+    assert out.loc[hour, "flag_outage"] and out["flag_outage"].sum() == 1
+
+
 def test_stuck_values_flagged_in_daytime_only():
     ac, poa, geometry = make()
     days = ac.index[geometry["sun_elevation"] > 5]
