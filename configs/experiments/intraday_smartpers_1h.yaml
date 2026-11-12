@@ -1,0 +1,4 @@
+extends: ../base.yaml
+name: intraday_smartpers_1h
+horizon: intraday
+model: {type: intraday_smart_persistence, window_hours: 1}

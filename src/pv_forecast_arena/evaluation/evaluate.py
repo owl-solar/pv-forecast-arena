@@ -72,23 +72,39 @@ def score(
 
     `others` only narrow the mask (see `evaluation_mask`).
     """
-    capacity = cfg["site"]["ac_capacity_kw"]
     mask = evaluation_mask(frame, forecast, reference, variant, others)
     if not mask.any():
         raise ValueError("no hours left to evaluate")
+    return summarise(*masked_arrays(frame, forecast, reference, mask, cfg), cfg, variant)
+
+
+def masked_arrays(
+    frame: pd.DataFrame, forecast: pd.Series, reference: pd.Series, mask: pd.Series, cfg: dict
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """(truth, forecast, reference, local day) of the masked hours."""
     index = forecast.index[mask]
     truth = frame.loc[index, "ac_power_kw"].to_numpy()
-    pred = forecast[index].to_numpy()
-    ref = reference[index].to_numpy()
-
-    rmse_model = metrics.nrmse(truth, pred, capacity)
-    rmse_ref = metrics.nrmse(truth, ref, capacity)
     # Local days: in summer the evening of one local day falls after midnight UTC.
     local_days = index.tz_convert(cfg["site"]["local_timezone"]).tz_localize(None).normalize()
-    low, high = skill_interval(pred - truth, ref - truth, local_days.to_numpy())
+    return truth, forecast[index].to_numpy(), reference[index].to_numpy(), local_days.to_numpy()
+
+
+def summarise(
+    truth: np.ndarray,
+    pred: np.ndarray,
+    ref: np.ndarray,
+    days: np.ndarray,
+    cfg: dict,
+    variant: str,
+) -> dict:
+    """Metrics and skill (with bootstrap interval) of already masked arrays."""
+    capacity = cfg["site"]["ac_capacity_kw"]
+    rmse_model = metrics.nrmse(truth, pred, capacity)
+    rmse_ref = metrics.nrmse(truth, ref, capacity)
+    low, high = skill_interval(pred - truth, ref - truth, days)
     return {
         "variant": variant,
-        "n_hours": int(mask.sum()),
+        "n_hours": len(truth),
         "nrmse": rmse_model,
         "nmae": metrics.nmae(truth, pred, capacity),
         "mbe": metrics.mbe(truth, pred, capacity),

@@ -13,7 +13,7 @@ from collections.abc import Callable
 import pandas as pd
 
 from pv_forecast_arena.evaluation.splits import Split
-from pv_forecast_arena.models import baselines, gbm, hybrid, physics
+from pv_forecast_arena.models import baselines, gbm, hybrid, intraday_baselines, physics
 
 Predict = Callable[[pd.DataFrame, Split, dict], pd.Series]
 
@@ -34,6 +34,24 @@ MODELS: dict[str, Predict] = {
     "gbm": gbm.predict,
     "hybrid": hybrid.predict,
 }
+
+
+IntradayPredict = Callable[[pd.DataFrame, Split, dict, int], pd.Series]
+
+INTRADAY_MODELS: dict[str, IntradayPredict] = {
+    "intraday_persistence": intraday_baselines.persistence,
+    "intraday_smart_persistence": intraday_baselines.smart_persistence,
+}
+
+
+def get_intraday_model(model_type: str) -> IntradayPredict:
+    """Intraday models take the horizon (hours ahead) as a fourth argument."""
+    try:
+        return INTRADAY_MODELS[model_type]
+    except KeyError:
+        raise ValueError(
+            f"unknown intraday model type {model_type!r}; known: {sorted(INTRADAY_MODELS)}"
+        ) from None
 
 
 def get_model(model_type: str) -> Predict:

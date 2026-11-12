@@ -62,5 +62,24 @@ evaluation:
     name: physics_static_erbs_perez
     model: {type: physics, decomposition: erbs, transposition: perez, calibration: static}
   metrics: [nrmse, nmae, mbe, skill]
+  # Intraday runs (scripts/run_intraday.py): skill is against the newest-hour clear-sky persistence
+  # until the Stage 5 comparison of 1 h and 3 h windows picks the stronger one; skill_dayahead is
+  # against the Stage 3 winner.
+  intraday_reference:
+    name: intraday_smartpers_1h
+    model: {type: intraday_smart_persistence, window_hours: 1}
+  dayahead_reference:
+    name: hybrid_lgbm_residual
+    model:
+      type: hybrid
+      learner: lightgbm
+      target: residual
+      use_past: true
+      rolling_days: 30
+      physics: {decomposition: erbs, transposition: perez, calibration: static}
+
+intraday:
+  horizons: [1, 2, 3, 4, 5, 6]   # target hour = issue time + h
+  data_delay_hours: 1            # a measured hour is known one hour after its end
 
 seed: 42

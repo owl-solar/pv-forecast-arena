@@ -47,6 +47,59 @@ def select_past(frame: pd.DataFrame, columns: Iterable[str]) -> pd.DataFrame:
     return frame[columns]
 
 
+MAX_INTRADAY_HORIZON = 6
+# `fc_lead1_*` of target hour tau is the run started at tau - 24 h; assume it is published at most 6 h
+# after it starts. It is known at issue time tau - h only if h <= 24 - 6.
+LEAD1_PUBLICATION_DELAY_H = 6
+MAX_LEAD1_HORIZON = 24 - LEAD1_PUBLICATION_DELAY_H
+
+
+def delay_hours(cfg: dict) -> int:
+    """Hours between the end of a measured hour and its availability to the forecaster."""
+    return int(cfg.get("intraday", {}).get("data_delay_hours", 1))
+
+
+def _check_horizon(horizon: int) -> None:
+    if not 1 <= horizon <= MAX_INTRADAY_HORIZON:
+        raise ValueError(f"intraday horizon must be 1..{MAX_INTRADAY_HORIZON}, got {horizon}")
+
+
+def as_of(series: pd.Series, horizon: int, delay: int) -> pd.Series:
+    """Align a backward-looking series to the target hour of an intraday forecast.
+
+    The forecast for target hour tau is issued at tau - horizon, and a measurement stamped s is
+    known from s + delay on. So the value returned at tau is the one stamped tau - horizon - delay:
+    the newest the forecaster may see. `series` must itself use only stamps <= its own stamp
+    (a raw measurement or a backward rolling statistic of it); tests/test_intraday.py corrupts
+    every later value and requires the forecast to stay unchanged.
+    """
+    _check_horizon(horizon)
+    if delay < 0:
+        raise ValueError("delay must be >= 0")
+    return series.shift(horizon + delay, freq="1h").reindex(series.index)
+
+
+def lead1_forecast(
+    frame: pd.DataFrame, columns: Iterable[str], cfg: dict, horizon: int
+) -> pd.DataFrame:
+    """Day-1 archived forecasts of the target hour, valid only for intraday horizons.
+
+    Columns come back without the `fc_lead1_` prefix. For day-ahead use this would leak (the run is
+    24 h before the target hour, after the 10:00 issue time); for horizon <= MAX_LEAD1_HORIZON it
+    was published before the intraday issue time.
+    """
+    _check_horizon(horizon)
+    if horizon > MAX_LEAD1_HORIZON:
+        raise ValueError(f"lead-1 forecasts are not known {horizon} h ahead of the target")
+    columns = list(columns)
+    forbidden = sorted(set(columns) - set(cfg["weather"]["variables"]))
+    if forbidden:
+        raise ValueError(f"Not a forecast variable: {forbidden}")
+    return frame[[f"fc_lead1_{c}" for c in columns]].rename(
+        columns=lambda c: c.removeprefix("fc_lead1_")
+    )
+
+
 def select_diagnostic(frame: pd.DataFrame, columns: Iterable[str], cfg: dict) -> pd.DataFrame:
     """On-site measurements of the target hour itself, for runs marked `diagnostic: true` only.
 

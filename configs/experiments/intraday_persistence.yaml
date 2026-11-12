@@ -1,0 +1,4 @@
+extends: ../base.yaml
+name: intraday_persistence
+horizon: intraday
+model: {type: intraday_persistence}
