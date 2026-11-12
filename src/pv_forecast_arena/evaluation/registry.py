@@ -18,13 +18,19 @@ def config_hash(cfg: dict) -> str:
 
 
 def git_state() -> tuple[str, bool]:
-    """Short commit hash and whether the working tree has uncommitted changes."""
+    """Short commit hash and whether the working tree has uncommitted changes.
+
+    The registry file itself is ignored: earlier runs of a batch append to it before later ones start.
+    """
     commit = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True
     ).stdout.strip()
     dirty = bool(
         subprocess.run(
-            ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
+            ["git", "status", "--porcelain", "--", ".", f":!{REGISTRY_PATH.as_posix()}"],
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout.strip()
     )
     return commit, dirty
