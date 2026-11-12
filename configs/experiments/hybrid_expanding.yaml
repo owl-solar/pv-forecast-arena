@@ -1,0 +1,5 @@
+extends: hybrid_lgbm_residual.yaml
+name: hybrid_expanding
+# Stage 4a reference: expanding window on the same test months (Aug-Dec) as the capped windows.
+evaluation:
+  min_train_months: 6

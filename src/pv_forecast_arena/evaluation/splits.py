@@ -53,9 +53,12 @@ def walk_forward_splits(
     end: str | pd.Timestamp | None = None,
     refit_every_months: int = 1,
     embargo: str | pd.Timedelta = "2D",
+    train_window_months: int | None = None,
 ) -> Iterator[Split]:
-    """Yield expanding-window splits: train = [train_start, test_start - embargo), test = one window.
+    """Yield splits: train = [train_start, test_start - embargo), test = one window.
 
+    The training window expands unless `train_window_months` is set; then it keeps only the last
+    that many months before the embargo (never reaching back past `train_start`).
     `end` is exclusive. Windows with no test rows are skipped.
     """
     if not index.is_monotonic_increasing or index.tz is None:
@@ -66,7 +69,11 @@ def walk_forward_splits(
     step = pd.DateOffset(months=refit_every_months)
     while test_start < end:
         test_end = min(test_start + step, end)
-        train = index[(index >= train_start) & (index < test_start - embargo)]
+        train_end = test_start - embargo
+        lower = train_start
+        if train_window_months is not None:
+            lower = max(train_start, train_end - pd.DateOffset(months=train_window_months))
+        train = index[(index >= lower) & (index < train_end)]
         test = index[(index >= test_start) & (index < test_end)]
         if len(train) and len(test):
             yield Split(train, test)
@@ -82,6 +89,7 @@ def development_splits(index: pd.DatetimeIndex, eval_cfg: dict) -> Iterator[Spli
         first_test,
         end=eval_cfg["holdout_start"],
         refit_every_months=eval_cfg["refit_every_months"],
+        train_window_months=eval_cfg.get("train_window_months"),
     )
 
 
@@ -92,4 +100,5 @@ def holdout_splits(index: pd.DatetimeIndex, eval_cfg: dict) -> Iterator[Split]:
         eval_cfg["train_start"],
         eval_cfg["holdout_start"],
         refit_every_months=eval_cfg["refit_every_months"],
+        train_window_months=eval_cfg.get("train_window_months"),
     )

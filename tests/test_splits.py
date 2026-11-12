@@ -80,3 +80,30 @@ def test_rejects_naive_or_unsorted_index():
     shuffled = pd.date_range("2024-02-01", periods=100, freq="1h", tz="UTC")[::-1]
     with pytest.raises(ValueError):
         list(walk_forward_splits(shuffled, "2024-02-01", "2024-03-01"))
+
+
+def test_train_window_keeps_only_recent_months(index):
+    cfg = {**CFG, "min_train_months": 6, "train_window_months": 3}
+    for split in development_splits(index, cfg):
+        end = split.test_start - pd.Timedelta("2D")
+        assert split.train_index.max() < end
+        assert split.train_index.min() >= end - pd.DateOffset(months=3)
+        assert split.train_index.min() >= pd.Timestamp("2024-02-01", tz="UTC")
+    expanding = [s.test_start for s in development_splits(index, {**CFG, "min_train_months": 6})]
+    capped = [s.test_start for s in development_splits(index, cfg)]
+    assert capped == expanding
+
+
+def test_window_longer_than_history_changes_nothing(index):
+    cfg = {**CFG, "min_train_months": 6}
+    full = [s.train_index for s in development_splits(index, cfg)]
+    wide = [s.train_index for s in development_splits(index, {**cfg, "train_window_months": 24})]
+    assert all(a.equals(b) for a, b in zip(full, wide))
+
+
+def test_train_once_uses_a_single_split(index):
+    cfg = {**CFG, "min_train_months": 6, "refit_every_months": 100}
+    parts = list(development_splits(index, cfg))
+    assert len(parts) == 1
+    assert parts[0].test_start == pd.Timestamp("2024-08-01", tz="UTC")
+    assert parts[0].test_index.max() < pd.Timestamp("2025-01-01", tz="UTC")

@@ -1,0 +1,6 @@
+extends: hybrid_lgbm_residual.yaml
+name: hybrid_win2
+# Stage 4a: training window capped at the last 2 months; common test months Aug-Dec.
+evaluation:
+  min_train_months: 6
+  train_window_months: 2
