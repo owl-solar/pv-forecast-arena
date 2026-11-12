@@ -19,7 +19,7 @@ from pv_forecast_arena.config import load_config
 from pv_forecast_arena.data.loading import load_dataset
 from pv_forecast_arena.evaluation import intraday as scoring
 from pv_forecast_arena.evaluation import registry, splits
-from pv_forecast_arena.models import get_intraday_model
+from pv_forecast_arena.models import get_intraday_fold_model
 
 
 def walk_forward(
@@ -27,13 +27,15 @@ def walk_forward(
 ) -> tuple[dict[int, pd.Series], list[dict]]:
     """Concatenated test-window forecasts of `cfg["model"]` for every horizon, and per-fold info."""
     make_splits = splits.holdout_splits if holdout else splits.development_splits
-    predict = get_intraday_model(cfg["model"]["type"])
-    folds, out = [], {}
-    for h in cfg["intraday"]["horizons"]:
-        parts = [predict(frame, s, cfg, h) for s in make_splits(frame.index, cfg["evaluation"])]
-        folds += [{"lead_h": h, **p.attrs.pop("info")} for p in parts if "info" in p.attrs]
-        out[h] = pd.concat(parts).rename("forecast")
-    return out, folds
+    predict = get_intraday_fold_model(cfg["model"]["type"])
+    parts: dict[int, list[pd.Series]] = {h: [] for h in cfg["intraday"]["horizons"]}
+    folds = []
+    for split in make_splits(frame.index, cfg["evaluation"]):
+        for h, forecast in predict(frame, split, cfg).items():
+            if "info" in forecast.attrs:
+                folds.append({"lead_h": h, **forecast.attrs.pop("info")})
+            parts[h].append(forecast)
+    return {h: pd.concat(p).rename("forecast") for h, p in parts.items()}, folds
 
 
 def intraday_reference(frame: pd.DataFrame, cfg: dict, holdout: bool) -> dict[int, pd.Series]:

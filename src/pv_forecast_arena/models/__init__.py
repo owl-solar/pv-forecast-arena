@@ -18,6 +18,7 @@ from pv_forecast_arena.models import (
     gbm,
     hybrid,
     intraday_baselines,
+    intraday_gbm,
     intraday_physics,
     physics,
 )
@@ -51,6 +52,24 @@ INTRADAY_MODELS: dict[str, IntradayPredict] = {
     "intraday_physics": intraday_physics.predict,
     "intraday_physics_nowcast": intraday_physics.predict_nowcast,
 }
+
+
+IntradayFoldPredict = Callable[[pd.DataFrame, Split, dict], dict[int, pd.Series]]
+
+# Models that train once per fold for all horizons together (they return {horizon: forecast}).
+INTRADAY_FOLD_MODELS: dict[str, IntradayFoldPredict] = {"intraday_gbm": intraday_gbm.predict_all}
+
+
+def get_intraday_fold_model(model_type: str) -> IntradayFoldPredict:
+    """Fold-level view of every intraday model: `predict(frame, split, cfg) -> {horizon: forecast}`."""
+    if model_type in INTRADAY_FOLD_MODELS:
+        return INTRADAY_FOLD_MODELS[model_type]
+    per_horizon = get_intraday_model(model_type)
+
+    def predict(frame: pd.DataFrame, split: Split, cfg: dict) -> dict[int, pd.Series]:
+        return {h: per_horizon(frame, split, cfg, h) for h in cfg["intraday"]["horizons"]}
+
+    return predict
 
 
 def get_intraday_model(model_type: str) -> IntradayPredict:

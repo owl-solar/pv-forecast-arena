@@ -1,0 +1,10 @@
+extends: ../base.yaml
+name: intraday_lgbm_perh
+horizon: intraday
+model:
+  type: intraday_gbm
+  learner: lightgbm
+  decomposition: erbs
+  transposition: perez
+  target: residual
+  per_horizon: true

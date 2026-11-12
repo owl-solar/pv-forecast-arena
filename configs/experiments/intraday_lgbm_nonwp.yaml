@@ -1,0 +1,10 @@
+extends: ../base.yaml
+name: intraday_lgbm_nonwp
+horizon: intraday
+model:
+  type: intraday_gbm
+  learner: lightgbm
+  decomposition: erbs
+  transposition: perez
+  target: csi
+  use_nwp: false

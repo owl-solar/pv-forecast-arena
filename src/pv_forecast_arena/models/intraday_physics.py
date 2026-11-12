@@ -54,13 +54,22 @@ def recent_ratio(
     return (num / den).where(den >= MIN_WINDOW_MODEL_KW).clip(*RATIO_RANGE)
 
 
+def nowcast_forecast(
+    frame: pd.DataFrame, parts: dict, cfg: dict, horizon: int, window_hours: int, decay_hours: float
+) -> pd.Series:
+    """Physics forecast scaled by the faded recent ratio, over the whole frame (see module doc)."""
+    scaled = parts["k"] * parts["unlimited"]
+    ratio = recent_ratio(frame, scaled, parts["limit"], window_hours)
+    ratio = features.as_of(ratio, horizon, features.delay_hours(cfg))
+    fade = np.exp(-horizon / decay_hours)
+    effective = (1.0 + (ratio - 1.0) * fade).fillna(1.0)
+    return (effective * scaled).clip(lower=0.0, upper=parts["limit"])
+
+
 def predict_nowcast(frame: pd.DataFrame, split, cfg: dict, horizon: int) -> pd.Series:
     m = cfg["model"]
     parts = components(frame, split, cfg, horizon)
-    scaled = parts["k"] * parts["unlimited"]
-    ratio = recent_ratio(frame, scaled, parts["limit"], int(m.get("window_hours", 1)))
-    ratio = features.as_of(ratio, horizon, features.delay_hours(cfg))
-    fade = np.exp(-horizon / float(m.get("decay_hours", 3.0)))
-    effective = (1.0 + (ratio - 1.0) * fade).fillna(1.0)
-    forecast = (effective * scaled).clip(lower=0.0, upper=parts["limit"])
+    forecast = nowcast_forecast(
+        frame, parts, cfg, horizon, int(m.get("window_hours", 1)), float(m.get("decay_hours", 3.0))
+    )
     return forecast.reindex(split.test_index).rename("intraday_physics_nowcast")

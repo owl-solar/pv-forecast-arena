@@ -8,7 +8,7 @@ from test_no_leakage import CFG, make_frame
 from pv_forecast_arena import features
 from pv_forecast_arena.evaluation import intraday as scoring
 from pv_forecast_arena.evaluation.splits import Split
-from pv_forecast_arena.models import intraday_baselines, intraday_physics
+from pv_forecast_arena.models import intraday_baselines, intraday_gbm, intraday_physics
 
 ICFG = {**CFG, "intraday": {"horizons": [1, 2, 3, 4, 5, 6], "data_delay_hours": 1}}
 PAST_ONLY = ("ac_power_kw", "obs_poa_wm2")
@@ -165,3 +165,68 @@ def test_scoring_reports_every_horizon_pooled_row_and_coverage():
     assert rows[1]["coverage"] < 1.0
     assert rows[2]["n_hours"] == rows[0]["n_hours"] + rows[1]["n_hours"]
     assert rows[0]["nrmse"] < rows[1]["nrmse"]
+
+
+GBM_VARIANTS = {
+    "residual": {"target": "residual"},
+    "residual_nowcast": {"target": "residual", "baseline": "nowcast"},
+    "csi": {"target": "csi"},
+    "nonwp": {"target": "csi", "use_nwp": False},
+}
+
+
+def _gbm_cfg(**model):
+    base = {"decomposition": "erbs", "transposition": "perez", "min_train_hours": 5}
+    base["params"] = {"min_data_in_leaf": 2}
+    return {**ICFG, "model": {**base, **model}}
+
+
+@pytest.mark.parametrize("variant", GBM_VARIANTS)
+@pytest.mark.parametrize("horizon", [1, 4, 6])
+def test_gbm_feature_row_ignores_everything_after_issue_time(variant, horizon):
+    # Trees hide leakage in the forecast (a corrupted value lands in the same leaf), so check the rows.
+    frame = _with_lead1(make_frame())
+    cfg = _gbm_cfg(**GBM_VARIANTS[variant])
+    split = Split(frame.index[:24], frame.index)  # limit and static scale from day one only
+
+    def rows(f):
+        static, parts = intraday_gbm.static_design(f, split, cfg)
+        return intraday_gbm.horizon_design(f, static, parts, cfg, horizon)
+
+    base_x, base_line, base_den = rows(frame)
+    targets = frame.index[72::5]
+    for target in targets:
+        broken = frame.copy()
+        future = broken.index > target - pd.Timedelta(hours=horizon + 1)
+        for column in PAST_ONLY:
+            broken.loc[future, column] = np.random.default_rng(0).normal(0, 1e4, future.sum())
+        x, line, den = rows(broken)
+        pd.testing.assert_series_equal(x.loc[target], base_x.loc[target])
+        assert line[target] == base_line[target] or (
+            np.isnan(line[target]) and np.isnan(base_line[target])
+        )
+        assert den[target] == base_den[target]
+
+    # Mutation check: the newest allowed stamp is read (so the comparison above can fail).
+    changed = 0
+    for target in targets:
+        broken = frame.copy()
+        broken.loc[target - pd.Timedelta(hours=horizon + 1), "ac_power_kw"] = 1e4
+        x, _, _ = rows(broken)
+        changed += not x.loc[target].equals(base_x.loc[target])
+    assert changed > 0
+
+
+@pytest.mark.parametrize("per_horizon", [False, True])
+@pytest.mark.parametrize("variant", GBM_VARIANTS)
+def test_gbm_forecasts_every_horizon_bounded_and_zero_at_night(variant, per_horizon):
+    frame = _with_lead1(make_frame())
+    cfg = _gbm_cfg(**GBM_VARIANTS[variant], per_horizon=per_horizon)
+    split = Split(frame.index[: 24 * 8], frame.index[24 * 8 :])
+    out = intraday_gbm.predict_all(frame, split, cfg)
+    assert sorted(out) == [1, 2, 3, 4, 5, 6]
+    for forecast in out.values():
+        assert forecast.index.equals(split.test_index)
+        assert forecast.notna().all() and (forecast >= 0).all()
+        assert (forecast[~frame.loc[forecast.index, "is_daytime"]] == 0).all()
+        assert "rounds" in forecast.attrs["info"]
