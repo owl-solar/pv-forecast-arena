@@ -1,0 +1,19 @@
+name,sky,n,nrmse
+hybrid_lgbm_residual,clear (>=0.8),11664,0.0817
+hybrid_lgbm_residual,overcast (<0.4),834,0.2029
+hybrid_lgbm_residual,partly cloudy,1812,0.1932
+intraday_lgbm_nonwp,clear (>=0.8),11664,0.0995
+intraday_lgbm_nonwp,overcast (<0.4),834,0.2794
+intraday_lgbm_nonwp,partly cloudy,1812,0.1943
+intraday_lgbm_perh,clear (>=0.8),11664,0.0788
+intraday_lgbm_perh,overcast (<0.4),834,0.1562
+intraday_lgbm_perh,partly cloudy,1812,0.1842
+intraday_lgbm_residual,clear (>=0.8),11664,0.0804
+intraday_lgbm_residual,overcast (<0.4),834,0.1647
+intraday_lgbm_residual,partly cloudy,1812,0.1878
+intraday_physics_lead1,clear (>=0.8),11664,0.0886
+intraday_physics_lead1,overcast (<0.4),834,0.1681
+intraday_physics_lead1,partly cloudy,1812,0.1936
+intraday_physics_nowcast,clear (>=0.8),11664,0.0902
+intraday_physics_nowcast,overcast (<0.4),834,0.1537
+intraday_physics_nowcast,partly cloudy,1812,0.2037

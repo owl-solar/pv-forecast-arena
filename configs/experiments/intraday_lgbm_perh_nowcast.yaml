@@ -1,0 +1,13 @@
+# Added after seeing the Stage 5 results (not in the pre-registered list): per-horizon models on the
+# nowcast baseline, the two choices that each beat the single residual model.
+extends: ../base.yaml
+name: intraday_lgbm_perh_nowcast
+horizon: intraday
+model:
+  type: intraday_gbm
+  learner: lightgbm
+  decomposition: erbs
+  transposition: perez
+  target: residual
+  baseline: nowcast
+  per_horizon: true
