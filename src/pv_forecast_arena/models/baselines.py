@@ -5,6 +5,7 @@ from __future__ import annotations
 import pandas as pd
 
 from pv_forecast_arena.evaluation.splits import issue_time
+from pv_forecast_arena.features import select_past
 
 MIN_OBSERVED_HOURS = 3
 
@@ -28,6 +29,20 @@ def persistence(frame: pd.DataFrame, cfg: dict) -> pd.Series:
     return pd.Series(values, index=frame.index, name="persistence")
 
 
+def clearsky_ratio(frame: pd.DataFrame, cfg: dict) -> pd.Series:
+    """k of smart persistence at the issue time of every hour (see `smart_persistence`)."""
+    ac = select_past(frame, ["ac_power_kw"])["ac_power_kw"]
+    observed = frame["is_daytime"] & ac.notna()
+    power = ac.where(observed, 0.0).rolling("24h").sum()
+    clearsky = frame["clearsky_poa"].where(observed, 0.0).rolling("24h").sum()
+    hours = observed.astype(float).rolling("24h").sum()
+    ratio = (power / clearsky).where(hours >= MIN_OBSERVED_HOURS)
+    issued = issue_time(
+        frame.index, cfg["site"]["local_timezone"], cfg["weather"]["forecast_issue_hour_local"]
+    )
+    return pd.Series(ratio.reindex(issued).to_numpy(), index=frame.index, name="clearsky_ratio")
+
+
 def smart_persistence(frame: pd.DataFrame, cfg: dict) -> pd.Series:
     """Day-ahead smart persistence: clear-sky power ratio of the last 24 h known at issue time.
 
@@ -36,16 +51,5 @@ def smart_persistence(frame: pd.DataFrame, cfg: dict) -> pd.Series:
     limited to [0, capacity]. Uses only past measurements and deterministic geometry.
     Issues with fewer than `MIN_OBSERVED_HOURS` observed daytime hours give NaN.
     """
-    observed = frame["is_daytime"] & frame["ac_power_kw"].notna()
-    power = frame["ac_power_kw"].where(observed, 0.0).rolling("24h").sum()
-    clearsky = frame["clearsky_poa"].where(observed, 0.0).rolling("24h").sum()
-    hours = observed.astype(float).rolling("24h").sum()
-    ratio = (power / clearsky).where(hours >= MIN_OBSERVED_HOURS)
-
-    issued = issue_time(
-        frame.index, cfg["site"]["local_timezone"], cfg["weather"]["forecast_issue_hour_local"]
-    )
-    forecast = ratio.reindex(issued).to_numpy() * frame["clearsky_poa"].to_numpy()
-    return pd.Series(forecast, index=frame.index, name="smart_persistence").clip(
-        0.0, cfg["site"]["ac_capacity_kw"]
-    )
+    forecast = clearsky_ratio(frame, cfg) * frame["clearsky_poa"]
+    return forecast.rename("smart_persistence").clip(0.0, cfg["site"]["ac_capacity_kw"])

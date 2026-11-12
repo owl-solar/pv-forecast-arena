@@ -46,7 +46,7 @@ MIN_ROLLING_HOURS = 20
 WEATHER = ("shortwave_radiation", "direct_radiation", "temperature_2m", "wind_speed_10m")
 
 
-def _geometry(index: pd.DatetimeIndex, site: dict) -> pd.DataFrame:
+def geometry(index: pd.DatetimeIndex, site: dict) -> pd.DataFrame:
     mid = index - pd.Timedelta("30min")
     location = pvlib.location.Location(site["latitude"], site["longitude"], tz="UTC")
     position = location.get_solarposition(mid)
@@ -76,7 +76,7 @@ def unlimited_ac(
     if transposition not in TRANSPOSITIONS:
         raise ValueError(f"unknown transposition {transposition!r}; known: {TRANSPOSITIONS}")
     site = cfg["site"]
-    geo = _geometry(weather.index, site)
+    geo = geometry(weather.index, site)
     zenith = geo["apparent_zenith"]
     ghi = weather["shortwave_radiation"].clip(lower=0.0)
     if decomposition == "erbs":
@@ -146,16 +146,25 @@ def rolling_scale(ac: pd.Series, model: pd.Series, limit: float, cfg: dict, days
     return pd.Series(ratio.reindex(issued).to_numpy(), index=ac.index, name="k")
 
 
-def predict(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Series:
-    """Physics forecast for `split.test_index`; scale and limit are fitted on `split.train_index`."""
-    m = cfg["model"]
-    calibration = m.get("calibration", "raw")
-    if calibration not in CALIBRATIONS:
-        raise ValueError(f"unknown calibration {calibration!r}; known: {CALIBRATIONS}")
+def weather_inputs(frame: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """Forecast weather (or oracle weather in oracle runs) with the prefix removed."""
     oracle = bool(cfg.get("oracle", False))
     prefix = "oracle_" if oracle else "fc_"
     weather = select_features(frame, [prefix + v for v in WEATHER], cfg, oracle=oracle)
-    weather = weather.rename(columns=lambda c: c.removeprefix(prefix))
+    return weather.rename(columns=lambda c: c.removeprefix(prefix))
+
+
+def components(frame: pd.DataFrame, split: Split, cfg: dict, model_cfg: dict | None = None) -> dict:
+    """Pieces of the physics forecast over the whole frame, fitted on `split.train_index`.
+
+    Returns `unlimited` (model AC with k = 1, no inverter limit), `k` (scale per hour), `k_static`,
+    `limit` and `forecast` = min(k * unlimited, limit). `model_cfg` defaults to `cfg["model"]`.
+    """
+    m = cfg["model"] if model_cfg is None else model_cfg
+    calibration = m.get("calibration", "raw")
+    if calibration not in CALIBRATIONS:
+        raise ValueError(f"unknown calibration {calibration!r}; known: {CALIBRATIONS}")
+    weather = weather_inputs(frame, cfg)
     model = unlimited_ac(weather, cfg, m["decomposition"], m["transposition"])
 
     train = split.train_index
@@ -179,6 +188,12 @@ def predict(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Series:
         k = k.fillna(k_static)
 
     forecast = (k * model).clip(lower=0.0, upper=limit)
+    return {"unlimited": model, "k": k, "k_static": k_static, "limit": limit, "forecast": forecast}
+
+
+def predict(frame: pd.DataFrame, split: Split, cfg: dict) -> pd.Series:
+    """Physics forecast for `split.test_index`; scale and limit are fitted on `split.train_index`."""
+    forecast = components(frame, split, cfg)["forecast"]
     return forecast.reindex(split.test_index).rename("physics")
 
 

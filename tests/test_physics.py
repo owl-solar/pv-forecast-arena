@@ -23,7 +23,7 @@ CFG = {
 def make_frame(days=40, seed=1):
     """Synthetic hours with clear-sky-like forecasts and a plant at 90% of the PVWatts output."""
     index = pd.date_range("2024-06-01 01:00", periods=24 * days, freq="1h", tz="UTC")
-    geo = physics._geometry(index, CFG["site"])
+    geo = physics.geometry(index, CFG["site"])
     cos_z = np.cos(np.radians(geo["apparent_zenith"])).clip(lower=0.0).to_numpy()
     rng = np.random.default_rng(seed)
     ghi = 1000.0 * cos_z * (0.6 + 0.4 * rng.random(len(index)))

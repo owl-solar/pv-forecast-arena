@@ -2,7 +2,8 @@
 
 Every model function has the signature `predict(frame, split, cfg) -> pd.Series` and returns forecasts
 for `split.test_index`, using only what is known at the issue time of each hour. Models that learn
-parameters fit them on `split.train_index` only.
+parameters fit them on `split.train_index` only. A model may put per-fold details (a flat dict) in
+`forecast.attrs["info"]`; the runner saves them to runs/<run_id>/folds.csv.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ from collections.abc import Callable
 import pandas as pd
 
 from pv_forecast_arena.evaluation.splits import Split
-from pv_forecast_arena.models import baselines, physics
+from pv_forecast_arena.models import baselines, gbm, hybrid, physics
 
 Predict = Callable[[pd.DataFrame, Split, dict], pd.Series]
 
@@ -30,6 +31,8 @@ MODELS: dict[str, Predict] = {
     "smart_persistence": _smart_persistence,
     "physics": physics.predict,
     "physics_measured_poa": physics.predict_measured_poa,
+    "gbm": gbm.predict,
+    "hybrid": hybrid.predict,
 }
 
 

@@ -18,12 +18,13 @@ from pv_forecast_arena.evaluation import evaluate, registry, splits
 from pv_forecast_arena.models import baselines, get_model
 
 
-def walk_forward(frame: pd.DataFrame, cfg: dict, holdout: bool) -> pd.Series:
-    """Concatenated test-window forecasts of `cfg["model"]` over the chosen period."""
+def walk_forward(frame: pd.DataFrame, cfg: dict, holdout: bool) -> tuple[pd.Series, list[dict]]:
+    """Concatenated test-window forecasts of `cfg["model"]` and the per-fold info models report."""
     make_splits = splits.holdout_splits if holdout else splits.development_splits
     predict = get_model(cfg["model"]["type"])
     parts = [predict(frame, s, cfg) for s in make_splits(frame.index, cfg["evaluation"])]
-    return pd.concat(parts).rename("forecast")
+    folds = [p.attrs.pop("info") for p in parts if "info" in p.attrs]
+    return pd.concat(parts).rename("forecast"), folds
 
 
 def second_reference(frame: pd.DataFrame, cfg: dict, holdout: bool) -> pd.Series:
@@ -31,12 +32,12 @@ def second_reference(frame: pd.DataFrame, cfg: dict, holdout: bool) -> pd.Series
     ref = cfg["evaluation"]["second_reference"]
     ref_cfg = {**cfg, "name": ref["name"], "model": ref["model"], "oracle": False}
     ref_cfg["diagnostic"] = False
-    return walk_forward(frame, ref_cfg, holdout)
+    return walk_forward(frame, ref_cfg, holdout)[0]
 
 
 def run(cfg: dict, holdout: bool = False) -> list[dict]:
     frame = load_dataset(cfg, holdout=holdout)
-    forecast = walk_forward(frame, cfg, holdout)
+    forecast, folds = walk_forward(frame, cfg, holdout)
     reference = baselines.smart_persistence(frame, cfg)
     physics_ref = second_reference(frame, cfg, holdout)
 
@@ -66,6 +67,8 @@ def run(cfg: dict, holdout: bool = False) -> list[dict]:
         )
     out = Path("runs") / run_id
     out.mkdir(parents=True, exist_ok=True)
+    if folds:
+        pd.DataFrame(folds).to_csv(out / "folds.csv", index=False)
     forecast.to_frame().to_parquet(out / "forecast.parquet")
     evaluate.monthly(frame, forecast, reference, cfg).to_csv(out / "monthly.csv")
     registry.append(rows)

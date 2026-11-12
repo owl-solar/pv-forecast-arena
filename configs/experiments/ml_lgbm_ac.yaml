@@ -1,0 +1,7 @@
+extends: ../base.yaml
+name: ml_lgbm_ac
+horizon: day_ahead
+model:
+  type: gbm
+  learner: lightgbm
+  target: ac
