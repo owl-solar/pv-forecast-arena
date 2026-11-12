@@ -1,6 +1,6 @@
 """Stage comparison on the development period: tables, paired tests and figures.
 
-Usage: compare_models.py --stage 2|3 (default 3).
+Usage: compare_models.py --stage 2|3|4 (default 4).
 
 Reads the latest development run of each experiment from the registry and its saved forecast in
 runs/<run_id>/. Never touches the hold-out.
@@ -104,7 +104,7 @@ STAGES = {
     3: {
         "names": lambda n: (
             n in (REFERENCE, PHYSICS, "oracle_physics_static_erbs_perez")
-            or n.startswith(("ml_", "hybrid_", "oracle_hybrid_", "oracle_ml_"))
+            or n.startswith(("ml_", "hybrid_lgbm_", "oracle_hybrid_", "oracle_ml_"))
         ),
         "pairs": STAGE3_PAIRS,
         "focus": {
@@ -123,6 +123,27 @@ STAGES = {
             "skill_phys_hi",
         ],
     },
+}
+WINDOWS = [2, 3, 4, 6]
+EXPANDING = "hybrid_expanding"
+STAGE4_PAIRS = [
+    *((f"hybrid_win{w}", EXPANDING) for w in WINDOWS),  # does a shorter window cost anything
+    ("hybrid_win3", "hybrid_win2"),  # neighbouring windows
+    ("hybrid_win4", "hybrid_win3"),
+    ("hybrid_win6", "hybrid_win4"),
+    ("hybrid_train_once", EXPANDING),  # refit monthly or train once
+    (EXPANDING, PHYSICS),
+]
+STAGES[4] = {
+    "names": lambda n: n.startswith("hybrid_win") or n in ("hybrid_expanding", "hybrid_train_once"),
+    "pairs": STAGE4_PAIRS,
+    "focus": {
+        "hybrid_win2": ("window 2 mo", YELLOW),
+        "hybrid_win6": ("window 6 mo", AQUA),
+        EXPANDING: ("expanding window", ORANGE),
+        "hybrid_train_once": ("trained once", MUTED),
+    },
+    "skill_cols": STAGES[3]["skill_cols"],
 }
 SKY_BINS = [0.0, 0.4, 0.8, np.inf]
 SKY_LABELS = ["overcast (<0.4)", "partly cloudy", "clear (>=0.8)"]
@@ -282,7 +303,7 @@ def plot_sky(sky: pd.DataFrame, out: Path, focus: dict) -> None:
         s = sky[sky["name"] == name].set_index("sky").reindex(SKY_LABELS)
         offset = (i - (len(focus) - 1) / 2) * width
         ax.bar(x + offset, s["nrmse"], width * 0.92, color=color, label=label)
-    hours = sky[sky["name"] == REFERENCE].set_index("sky").reindex(SKY_LABELS)["n_hours"]
+    hours = sky[sky["name"] == next(iter(focus))].set_index("sky").reindex(SKY_LABELS)["n_hours"]
     ax.set_xticks(x, [f"{lab}\n{int(n)} h" for lab, n in zip(SKY_LABELS, hours)])
     ax.set_ylabel("nRMSE")
     ax.grid(axis="x", visible=False)
@@ -331,7 +352,25 @@ def plot_importance(imp: pd.DataFrame, out: Path, focus: dict, top: int = 14) ->
     plt.close(fig)
 
 
-def main(stage_no: int = 3, config: str = "configs/base.yaml") -> None:
+def plot_window_curve(table: pd.DataFrame, out: Path) -> None:
+    """nRMSE against the length of the training window (expanding = the longest)."""
+    fig, ax = plt.subplots(figsize=(7, 3.8))
+    for variant, color in [("all", BLUE), ("clean", AQUA)]:
+        t = table[table["variant"] == variant].set_index("name")
+        names = [f"hybrid_win{w}" for w in WINDOWS] + [EXPANDING]
+        x = [str(w) for w in WINDOWS] + ["expanding"]
+        ax.plot(x, t.loc[names, "nrmse"], color=color, lw=2, marker="o", ms=5, label=variant)
+        ax.axhline(t.loc["hybrid_train_once", "nrmse"], color=color, lw=1, ls=":")
+    ax.set_xlabel("training window, months (dotted: trained once)")
+    ax.set_ylabel("nRMSE")
+    ax.legend(frameon=False, title="hours", fontsize=9)
+    ax.set_title("Learning curve of the hybrid, test Aug-Dec 2024", loc="left", fontsize=10)
+    fig.tight_layout()
+    fig.savefig(out, dpi=130)
+    plt.close(fig)
+
+
+def main(stage_no: int = 4, config: str = "configs/base.yaml") -> None:
     stage = STAGES[stage_no]
     focus = stage["focus"]
     cfg = load_config(config)
@@ -355,7 +394,9 @@ def main(stage_no: int = 3, config: str = "configs/base.yaml") -> None:
     plot_skill(table, figures / f"{tag}_skill.png", stage_no)
     plot_monthly(monthly, figures / f"{tag}_monthly.png", focus)
     plot_sky(sky, figures / f"{tag}_sky.png", focus)
-    if stage_no >= 3:
+    if stage_no == 4:
+        plot_window_curve(table, figures / f"{tag}_window_curve.png")
+    if stage_no == 3:
         imp = importance_table(runs, ["ml_lgbm_csi", "hybrid_lgbm_residual"])
         imp.to_csv(results / f"{tag}_importance.csv", float_format="%.4f")
         plot_importance(imp, figures / f"{tag}_importance.png", focus)
@@ -363,5 +404,5 @@ def main(stage_no: int = 3, config: str = "configs/base.yaml") -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", type=int, default=3, choices=sorted(STAGES))
+    ap.add_argument("--stage", type=int, default=4, choices=sorted(STAGES))
     main(ap.parse_args().stage)

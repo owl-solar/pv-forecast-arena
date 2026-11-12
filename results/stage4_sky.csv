@@ -1,0 +1,13 @@
+name,sky,n_hours,nrmse,mbe
+hybrid_win2,overcast (<0.4),139,0.2001,0.1155
+hybrid_win2,partly cloudy,233,0.1993,0.0017
+hybrid_win2,clear (>=0.8),1173,0.1028,-0.0176
+hybrid_win6,overcast (<0.4),139,0.2066,0.1297
+hybrid_win6,partly cloudy,233,0.1948,0.0200
+hybrid_win6,clear (>=0.8),1173,0.0951,-0.0079
+hybrid_expanding,overcast (<0.4),139,0.2029,0.1297
+hybrid_expanding,partly cloudy,233,0.2040,0.0281
+hybrid_expanding,clear (>=0.8),1173,0.0951,-0.0070
+hybrid_train_once,overcast (<0.4),139,0.2058,0.1317
+hybrid_train_once,partly cloudy,233,0.2021,0.0379
+hybrid_train_once,clear (>=0.8),1173,0.0970,0.0159
