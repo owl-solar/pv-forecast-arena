@@ -1,0 +1,12 @@
+extends: ../base.yaml
+name: oracle_hybrid_lgbm_residual
+horizon: day_ahead
+# Oracle run: reanalysis weather instead of forecasts, for error decomposition only. Not a forecast.
+oracle: true
+model:
+  type: hybrid
+  learner: lightgbm
+  target: residual
+  use_past: true
+  rolling_days: 30
+  physics: {decomposition: erbs, transposition: perez, calibration: static}
