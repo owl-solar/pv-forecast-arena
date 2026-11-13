@@ -2,6 +2,7 @@
 CLAUDE.md
 .claude/
 docs/PLAN.md
+README.ru.md
 
 # --- Data (downloaded locally, too large / license-bound) ---
 data/raw/*
