@@ -70,7 +70,24 @@ with tabs[1]:
     if df is not None:
         df = df[(df["variant"] == variant) & (df["scope"] == "fullday")]
         st.subheader("nRMSE by horizon (full day, development)")
-        fig = px.line(df, x="lead_h", y="nrmse", color="name", markers=True)
+        all_names = sorted(df["name"].unique())
+        default = [
+            n
+            for n in (
+                "intraday_smartpers_1h",
+                "intraday_physics_lead1",
+                "intraday_lgbm_nonwp",
+                "intraday_lgbm_perh",
+            )
+            if n in all_names
+        ]
+        shown = st.multiselect(
+            "Models (plain persistence, nRMSE 0.3-0.56, is off by default: it flattens the rest)",
+            all_names,
+            default,
+            key="nrmse_models",
+        )
+        fig = px.line(df[df["name"].isin(shown)], x="lead_h", y="nrmse", color="name", markers=True)
         st.plotly_chart(fig, width="stretch")
         names = st.multiselect(
             "Skill against the day-ahead hybrid",
