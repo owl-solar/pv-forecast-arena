@@ -29,6 +29,9 @@ A wrong forecast costs money: if you promise more than you deliver you pay for t
 
 **Data.** One real plant (NREL PVDAQ system 2107, Arbuckle, California, 893 kW DC, fixed panels tilted 25° facing south), 20 months: February 2024 – December 2025. Measurements are 15-minute AC power and irradiance on the panels. Weather inputs are the **archived forecasts of the GFS weather model** (Open-Meteo "Previous Runs"): what was really published before the forecast time, not the weather that happened.
 
+![Timeline](docs/img/diagram_timeline.png)
+*Forecast issue times and what each forecast may use.*
+
 ## 2. Main findings
 
 1. **Physics plus machine learning wins.** A physical model of the plant (pvlib) whose remaining error is learned by LightGBM forecasts tomorrow's hourly output with an error of **14.8% of plant capacity on a full held-out year (2025)**. That is 28% better than the "smart persistence" baseline and 11% better than the physics model alone.
@@ -40,16 +43,7 @@ A wrong forecast costs money: if you promise more than you deliver you pay for t
 
 ## 3. How it works
 
-```
- raw data                 clean + align                forecasting methods                 evaluation
-┌──────────────┐     ┌──────────────────────┐     ┌──────────────────────────────┐     ┌───────────────────────┐
-│ plant power  │     │ hourly series (UTC)  │     │ 1. baselines (persistence)   │     │ walk-forward splits   │
-│ irradiance   │ ──► │ quality flags        │ ──► │ 2. physics model (pvlib)     │ ──► │ metrics + bootstrap   │
-│ GFS forecast │     │ leak-proof features  │     │ 3. ML (LightGBM/XGBoost)     │     │ intervals             │
-└──────────────┘     └──────────────────────┘     │ 4. hybrid = physics + ML     │     │ held-out year (once)  │
-                                                  │ 5. quantiles, 6. deep learn. │     └───────────────────────┘
-                                                  └──────────────────────────────┘
-```
+![Pipeline](docs/img/diagram_pipeline.png)
 
 **The methods, from simple to complex:**
 
@@ -66,12 +60,19 @@ A wrong forecast costs money: if you promise more than you deliver you pay for t
 
 **Why the hybrid works:** trees alone do not know that a plant produces more at noon in June than in December, so they extrapolate badly; physics alone has systematic biases because the weather forecast is imperfect. The hybrid uses each where it is strong.
 
+![Hybrid](docs/img/diagram_hybrid.png)
+*The hybrid model.*
+
 ## 4. How the numbers are kept honest
 
 Forecasting results are easy to inflate by accident. These rules were applied throughout:
 
 - **No look-ahead.** Every feature goes through one allow-list. For day-ahead only information available at 10:00 on the previous day is allowed. Tests deliberately corrupt all data after the forecast time and check that the forecast does not change (and a "mutation check" confirms that the test can actually fail). 147 automated tests.
 - **Walk-forward testing.** Models are trained on the past and tested on the following month, then retrained, moving through time. A 2-day gap (embargo) separates training from test data. No random shuffling.
+
+![Walk-forward](docs/img/diagram_walkforward.png)
+*Walk-forward testing: the training window grows, a 2-day gap precedes each test month, 2025 stays aside.*
+
 - **Intervals on every claim.** Improvements come with a 90% interval from a bootstrap over whole days (hours of one day are not independent). **Rule fixed in advance: if the interval includes 0, the simpler model wins.**
 - **Fixed hyper-parameters.** Not tuned on the test folds, so the development result is not inflated. The list of runs per stage was fixed before looking at results; later additions are marked "after results".
 - **Hold-out year.** 2025 was kept aside during development. It has since been used (once for the day-ahead winners, once, frozen, for the intraday and quantile winners), so it is **no longer independent**: new experiments are judged on 2024 only.
@@ -112,6 +113,9 @@ What the comparison says:
 - **Where the error comes from.** With perfect (observed) weather the hybrid's error falls to 0.110 and its advantage over physics disappears (+0.020, interval includes 0). A diagnostic run that uses the plant's own irradiance sensor reaches 0.055. In squared-error terms: ~30% is the error of the GFS forecast, about half is the gap between reanalysis irradiance and what the plant sensor sees, ~20% is plant-model error.
 - **Training strategy.** Training windows of 2–6 months versus an ever-growing window, and monthly versus one-off training, are statistically indistinguishable, so the simplest (growing window, monthly retraining) stays.
 - **By sky.** On clear days the hybrid is clearly better than physics; on overcast days the gain is small or negative.
+
+![Error budget](docs/img/diagram_error_budget.png)
+*Where the day-ahead error comes from.*
 
 ![skill](results/figures/holdout_skill.png)
 
