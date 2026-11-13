@@ -157,6 +157,16 @@ The app reads `results/*.csv` and `results/figures` only; nothing is recomputed.
 
 Hosted version: https://pv-forecast-arena-ddg9bmsxem37hkcw29ye3w.streamlit.app/
 
+| | |
+|---|---|
+| ![Day-ahead skill with intervals](docs/img/app_dayahead.png) | ![Intraday error by horizon and hour](docs/img/app_intraday.png) |
+| Day-ahead: skill against smart persistence, 90% bootstrap intervals overlap among the top models, so the simpler one is chosen | Intraday: error by horizon and by hour of day |
+| ![Imbalance cost](docs/img/app_cost.png) | ![Calibration of the quantile bands](docs/img/app_calibration.png) |
+| Imbalance cost of a bid in the "shortfall is expensive" scenario | Calibration: the quantile bands under-cover |
+| ![Hold-out 2025](docs/img/app_holdout.png) | |
+| Hold-out 2025: the error grows and the bias turns positive at the end of the year (station drift) | |
+
+
 ## Project structure
 
 ```
