@@ -2,6 +2,8 @@
 
 A benchmark of solar PV generation forecasting approaches on one real plant, built the way a forecasting model should be evaluated before it goes near production: the same data, the same walk-forward splits, the same metrics, a strict no-look-ahead rule, and statistical intervals on every claimed improvement.
 
+**Live results viewer:** https://pv-forecast-arena-ddg9bmsxem37hkcw29ye3w.streamlit.app/ (free hosting; it sleeps without visitors and wakes up in about half a minute).
+
 **In one paragraph.** On a 893 kW(DC) plant in California, a hybrid model (a physical pvlib chain whose *residual* is learned by LightGBM) forecasts the next day's hourly output with an nRMSE of 14.8% of capacity on a year of held-out data, 28% better than a smart-persistence baseline and 11% better than the physics alone. For 1–6 h ahead, adding the newest weather forecast and the latest measurements cuts the error further (by 28% at 1 h, 10% at 6 h against the day-ahead model). Deep learning (LSTM, TFT) did **not** beat the hybrid with 20 months of data. Quantile forecasts are useful for bidding when shortfalls are expensive (−9% imbalance cost in a scenario analysis), but their bands are **too narrow**, and the plant itself drifted at the end of 2025. All of this, including what failed, is documented below.
 
 ## What this project demonstrates
@@ -152,6 +154,8 @@ streamlit run app/main.py
 ```
 
 The app reads `results/*.csv` and `results/figures` only; nothing is recomputed.
+
+Hosted version: https://pv-forecast-arena-ddg9bmsxem37hkcw29ye3w.streamlit.app/
 
 ## Project structure
 
