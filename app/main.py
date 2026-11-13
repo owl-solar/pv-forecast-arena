@@ -31,7 +31,7 @@ def skill_bars(df: pd.DataFrame, label: str, lo: str, hi: str, value: str) -> No
     df = df.copy()
     fig = px.bar(df, x=label, y=value, error_y=df[hi] - df[value], error_y_minus=df[value] - df[lo])
     fig.update_layout(yaxis_title="skill, 90% day-block bootstrap interval", xaxis_title="")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 st.title("PV Forecast Arena")
@@ -43,7 +43,9 @@ st.caption(
 variant = st.sidebar.radio("Hours", ["all", "clean"], help="clean drops hours flagged bad")
 st.sidebar.markdown("Selection rule: if the skill interval includes 0, the simpler model wins.")
 
-tabs = st.tabs(["Day-ahead", "Intraday", "Quantiles & cost", "Deep learning", "Hold-out 2025", "Caveats"])
+tabs = st.tabs(
+    ["Day-ahead", "Intraday", "Quantiles & cost", "Deep learning", "Hold-out 2025", "Caveats"]
+)
 
 with tabs[0]:
     parts = [t for t in (table("stage2_comparison"), table("stage3_comparison")) if t is not None]
@@ -54,7 +56,7 @@ with tabs[0]:
         df = df.sort_values("nrmse")
         st.subheader("Models vs smart persistence (development)")
         cols = ["name", "n_hours", "nrmse", "nmae", "mbe", "skill", "skill_lo", "skill_hi"]
-        st.dataframe(df[cols], hide_index=True, use_container_width=True)
+        st.dataframe(df[cols], hide_index=True, width="stretch")
         skill_bars(df.head(12), "name", "skill_lo", "skill_hi", "skill")
     c1, c2 = st.columns(2)
     with c1:
@@ -69,14 +71,16 @@ with tabs[1]:
         df = df[(df["variant"] == variant) & (df["scope"] == "fullday")]
         st.subheader("nRMSE by horizon (full day, development)")
         fig = px.line(df, x="lead_h", y="nrmse", color="name", markers=True)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
         names = st.multiselect(
-            "Skill against the day-ahead hybrid", sorted(df["name"].unique()), ["intraday_lgbm_perh"]
+            "Skill against the day-ahead hybrid",
+            sorted(df["name"].unique()),
+            ["intraday_lgbm_perh"],
         )
         sub = df[df["name"].isin(names)]
         if len(sub):
             fig = px.line(sub, x="lead_h", y="skill_dayahead", color="name", markers=True)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
     c1, c2 = st.columns(2)
     with c1:
         figure("stage5_horizon")
@@ -87,14 +91,16 @@ with tabs[2]:
     cmp_ = table("stage6_comparison")
     if cmp_ is not None:
         st.subheader("Quantile forecasts (development)")
-        st.dataframe(cmp_[cmp_["variant"] == variant], hide_index=True, use_container_width=True)
+        st.dataframe(cmp_[cmp_["variant"] == variant], hide_index=True, width="stretch")
     cost = table("stage6_cost")
     if cost is not None:
         st.subheader("Imbalance cost of a bid")
-        st.caption("Prices are scenario parameters, not market data. q* = c_surplus / (c_short + c_surplus).")
+        st.caption(
+            "Prices are scenario parameters, not market data. q* = c_surplus / (c_short + c_surplus)."
+        )
         scenario = st.selectbox("Scenario", cost["scenario"].unique())
         sub = cost[(cost["scenario"] == scenario) & (cost["variant"] == variant)]
-        st.dataframe(sub.drop(columns=["scenario", "variant"]), hide_index=True, use_container_width=True)
+        st.dataframe(sub.drop(columns=["scenario", "variant"]), hide_index=True, width="stretch")
     c1, c2 = st.columns(2)
     with c1:
         figure("stage6_calibration", "calibration: the bands under-cover")
@@ -105,10 +111,10 @@ with tabs[3]:
     df = table("stage7_comparison")
     if df is not None:
         st.subheader("LSTM / TFT vs the hybrid (development)")
-        st.dataframe(df[df["variant"] == variant], hide_index=True, use_container_width=True)
+        st.dataframe(df[df["variant"] == variant], hide_index=True, width="stretch")
     pairs = table("stage7_pairs")
     if pairs is not None:
-        st.dataframe(pairs[pairs["variant"] == variant], hide_index=True, use_container_width=True)
+        st.dataframe(pairs[pairs["variant"] == variant], hide_index=True, width="stretch")
     c1, c2 = st.columns(2)
     with c1:
         figure("stage7_month")
@@ -122,12 +128,12 @@ with tabs[4]:
     )
     df = table("holdout_comparison")
     if df is not None:
-        st.dataframe(df[df["variant"] == variant], hide_index=True, use_container_width=True)
+        st.dataframe(df[df["variant"] == variant], hide_index=True, width="stretch")
     for name in ("holdout_frozen_intraday", "holdout_frozen_quantiles"):
         extra = table(name)
         if extra is not None:
             st.subheader(name.replace("holdout_frozen_", "").title())
-            st.dataframe(extra[extra["variant"] == variant], hide_index=True, use_container_width=True)
+            st.dataframe(extra[extra["variant"] == variant], hide_index=True, width="stretch")
     c1, c2 = st.columns(2)
     with c1:
         figure("holdout_monthly", "error by month: the end of 2025 stands out")
